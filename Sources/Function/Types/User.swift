@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2023 NatML Inc. All rights reserved.
+//  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
 import Foundation
@@ -14,11 +14,8 @@ public struct User: Codable {
     /// Username.
     var username: String
     
-    /// User email address.
-    let email: String
-    
     /// Date created.
-    var created: String // If this should be a Date object instead, make sure to convert the string accordingly.
+    var created: Date
     
     /// User display name.
     var name: String?

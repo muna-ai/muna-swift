@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2023 NatML Inc. All rights reserved.
+//  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
 public class Function {

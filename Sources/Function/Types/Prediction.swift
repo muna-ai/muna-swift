@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2023 NatML Inc. All rights reserved.
+//  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
 import Foundation
@@ -17,22 +17,57 @@ public struct Prediction : Codable {
     /// Predictor tag.
     var tag: String
     
-    /// Predictor type.
-    var type: PredictorType
-    
     /// Date created.
     var created: Date
     
     /// Prediction results.
-    var results: [ResultValue]?
+    var results: [Any]?
     
     /// Prediction latency in milliseconds.
     var latency: Float?
     
     /// Prediction error.
-    /// This is `null` if the prediction completed successfully.
     var error: String?
     
     /// Prediction logs.
     var logs: String?
+    
+    /// Prediction resources.
+    var resources: [PredictionResource]?
+        
+    /// Prediction configuration token.
+    var configuration: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, tag, created, latency, error, logs, resources
+    }
+}
+
+/// Prediction resource.
+public struct PredictionResource : Codable {
+    
+    /// Resource type.
+    var type: String
+    
+    /// Resource URL.
+    var url: String
+    
+    /// Resource name.
+    var name: String?
+}
+
+/// Prediction  acceleration.
+public enum Acceleration: Int, Codable {
+    
+    /// Use the default acceleration for the given platform.
+    case Default = 0
+    
+    /// Predictions run on the CPU.
+    case CPU = 0b001
+    
+    /// Predictions run on the GPU..
+    case GPU = 0b010
+    
+    /// Predictions run on the neural processor..
+    case NPU = 0b100
 }
