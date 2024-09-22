@@ -60,14 +60,14 @@ public struct PredictionResource : Codable {
 public enum Acceleration: Int, Codable {
     
     /// Use the default acceleration for the given platform.
-    case Default = 0
+    case auto = 0
     
     /// Predictions run on the CPU.
-    case CPU = 0b001
+    case cpu = 0b001
     
     /// Predictions run on the GPU..
-    case GPU = 0b010
+    case gpu = 0b010
     
     /// Predictions run on the neural processor..
-    case NPU = 0b100
+    case npu = 0b100
 }

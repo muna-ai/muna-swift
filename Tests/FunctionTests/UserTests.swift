@@ -1,3 +1,11 @@
+//
+//  UserTests.swift
+//  Function
+//
+//  Created by Yusuf Olokoba on 9/21/2024.
+//  Copyright © 2024 NatML Inc. All rights reserved.
+//
+
 import XCTest
 @testable import Function
 
@@ -9,7 +17,7 @@ final class UserTests: XCTestCase {
         XCTAssertNotNil(user)
     }
     
-    func testRetrieveNoUser () async throws {
+    func testRetrieveNilUser () async throws {
         let fxn = Function()
         let user = try await fxn.users.retrieve()
         XCTAssertNil(user)

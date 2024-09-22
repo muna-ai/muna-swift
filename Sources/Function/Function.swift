@@ -16,7 +16,7 @@ public class Function {
     public let predictors: PredictorService
 
     /// Make predictions.
-    //public let predictions: PredictionService
+    public let predictions: PredictionService
 
     /// Function API client.
     public let client: FunctionClient
@@ -33,6 +33,6 @@ public class Function {
         self.client = client
         self.users = UserService(client: client)
         self.predictors = PredictorService(client: client)
-        //self.predictions = PredictionService(client: client, cachePath: cachePath)
+        self.predictions = PredictionService(client: client)
     }
 }

@@ -12,12 +12,16 @@ public class FunctionClient {
 
     private let url: String
     private let auth: String
+    private let decoder: JSONDecoder
     
     public static let defaultURL = "https://api.fxn.ai/v1"
 
     init (accessKey: String? = nil, url: String? = nil) {
         self.url = url ?? FunctionClient.defaultURL;
         self.auth = accessKey != nil ? "Bearer \(accessKey!)" : ""
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .formatted(DateFormatter.utcFormatter)
+        self.decoder = decoder
     }
 
     func request<T: Decodable> (
@@ -48,14 +52,14 @@ public class FunctionClient {
         }
         // Check error
         if httpResponse.statusCode >= 400 {
-            let error = try? JSONDecoder().decode(ErrorResponse.self, from: data)
+            let error = try? decoder.decode(ErrorResponse.self, from: data)
             guard let message = error?.errors.first?.message else {
                 throw FunctionAPIError.requestFailed(message: "An unknown error occurred", status: httpResponse.statusCode)
             }
             throw FunctionAPIError.requestFailed(message: message, status: httpResponse.statusCode)
         }
         // Decode the response data
-        return try JSONDecoder().decode(T.self, from: data)
+        return try decoder.decode(T.self, from: data)
     }
 }
 
@@ -76,4 +80,15 @@ struct ErrorResponse: Decodable {
     struct ErrorDetail: Decodable {
         let message: String
     }
+}
+
+extension DateFormatter {
+
+    static let utcFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 }
