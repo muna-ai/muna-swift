@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class FunctionClient {
+internal class FunctionClient {
 
     private let url: String
     private let auth: String
@@ -74,7 +74,7 @@ public enum FunctionAPIError: Error {
     }
 }
 
-struct ErrorResponse: Decodable {
+internal struct ErrorResponse: Decodable {
     let errors: [ErrorDetail]
 
     struct ErrorDetail: Decodable {

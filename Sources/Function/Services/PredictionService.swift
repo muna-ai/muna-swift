@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Function
 
 public class PredictionService {
 
@@ -38,7 +39,7 @@ public class PredictionService {
         }
     }
     
-    private func createRawPrediction ( // INCOMPLETE
+    private func createRawPrediction (
         tag: String,
         clientId: String? = nil,
         configurationId: String? = nil
@@ -48,8 +49,8 @@ public class PredictionService {
             path: "/predictions",
             payload: [
                 "tag": tag,
-                //"clientId": clientId ?? Configuration.clientId,
-                //"configurationId": configurationId ?? Configuration.configurationId
+                "clientId": clientId ?? Configuration.clientId,
+                "configurationId": configurationId ?? Configuration.uniqueId
             ]
         )
     }

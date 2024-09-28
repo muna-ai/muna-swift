@@ -7,7 +7,7 @@
 //
 
 import XCTest
-@testable import Function
+@testable import FunctionSwift
 
 final class PredictorTests : XCTestCase {
     

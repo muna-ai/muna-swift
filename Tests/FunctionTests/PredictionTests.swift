@@ -7,8 +7,14 @@
 //
 
 import XCTest
-@testable import Function
+@testable import FunctionSwift
 
 final class PredictionTests : XCTestCase {
     
+    func testConfigurationIds () async throws {
+        let uniqueId = FunctionSwift.Configuration.uniqueId;
+        let clientId = FunctionSwift.Configuration.clientId;
+        XCTAssertNotNil(uniqueId)
+        XCTAssertNotNil(clientId)
+    }
 }

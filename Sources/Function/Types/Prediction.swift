@@ -9,7 +9,7 @@
 import Foundation
 
 /// Prediction.
-public struct Prediction : Codable {
+public struct Prediction: Codable {
     
     /// Prediction ID.
     var id: String
@@ -44,7 +44,7 @@ public struct Prediction : Codable {
 }
 
 /// Prediction resource.
-public struct PredictionResource : Codable {
+public struct PredictionResource: Codable {
     
     /// Resource type.
     var type: String
@@ -57,7 +57,7 @@ public struct PredictionResource : Codable {
 }
 
 /// Prediction  acceleration.
-public enum Acceleration: Int, Codable {
+public enum Acceleration: UInt32, Codable {
     
     /// Use the default acceleration for the given platform.
     case auto = 0

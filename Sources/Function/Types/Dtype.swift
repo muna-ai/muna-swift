@@ -9,7 +9,7 @@
 import Foundation
 
 /// Value data type.
-public enum Dtype: Int, Codable, CustomStringConvertible {
+public enum Dtype: UInt32, Codable, CustomStringConvertible {
 
     /// Value is null or has unsupported data type.
     case null = 0

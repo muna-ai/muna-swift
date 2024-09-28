@@ -9,7 +9,7 @@
 import Foundation
 
 /// Prediction function.
-public struct Predictor : Codable {
+public struct Predictor: Codable {
     
     /// Predictor tag.
     var tag: String
@@ -99,7 +99,7 @@ public struct EnumerationMember: Codable {
 }
 
 /// Predictor status.
-public enum PredictorStatus : String, Codable {
+public enum PredictorStatus: String, Codable {
     
     /// Predictor is being provisioned.
     case Provisioning = "PROVISIONING"
@@ -115,7 +115,7 @@ public enum PredictorStatus : String, Codable {
 }
 
 /// Predictor status.
-public enum AccessMode : String, Codable {
+public enum AccessMode: String, Codable {
     
     /// Predictor is public.
     case Public = "PUBLIC"

@@ -17,12 +17,11 @@ public class Function {
 
     /// Make predictions.
     public let predictions: PredictionService
-
-    /// Function API client.
-    public let client: FunctionClient
     
-    /// Function client version.
-    public static let version = "0.0.1"
+    /// Function version.
+    public static let version = "0.0.1" // INCOMPLETE // Use fxnc
+
+    private let client: FunctionClient
     
     /// Create the Function client.
     /// - Parameters:

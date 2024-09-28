@@ -30,9 +30,9 @@ public struct Tensor<T : TensorType> {
 
     /// Tensor shape.
     public let shape: [Int]
-    
+
     private let nativeData: UnsafePointer<T>?
-    
+
     /// Create a tensor.
     /// - Parameters:
     ///   - data: Tensor data.
@@ -42,7 +42,7 @@ public struct Tensor<T : TensorType> {
         self.nativeData = nil
         self.shape = shape
     }
-    
+
     /// Create a tensor.
     /// - Parameters:
     ///   - data: Pointer to tensor data.
@@ -53,7 +53,24 @@ public struct Tensor<T : TensorType> {
         self.shape = shape
     }
     
-    internal func getPointer () -> UnsafePointer<T> {
+    internal var dataType: Dtype {
+        switch T.self {
+            case is Float.Type:     return .float32
+            case is Double.Type:    return .float64
+            case is Int8.Type:      return .int8
+            case is Int16.Type:     return .int16
+            case is Int32.Type:     return .int32
+            case is Int64.Type:     return .int64
+            case is UInt8.Type:     return .uint8
+            case is UInt16.Type:    return .uint16
+            case is UInt32.Type:    return .uint32
+            case is UInt64.Type:    return .uint64
+            case is Bool.Type:      return .bool
+            default:                return .null
+        }
+    }
+
+    internal var dataPointer: UnsafePointer<T> {
         if let nativeData = nativeData {
             return nativeData
         } else {
