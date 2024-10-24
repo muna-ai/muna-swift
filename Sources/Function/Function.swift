@@ -9,8 +9,17 @@
 /// Function client.
 public class Function {
     
-    public protocol BuildConfiguration {
+    /// Function build configuration.
+    public struct Configuration : Codable {
         
+        public let tags: [String]
+        
+        public let envPath: String?
+
+        public init (tags: [String], envPath: String? = nil) {
+            self.tags = tags
+            self.envPath = envPath
+        }
     }
     
     /// Manage users.
