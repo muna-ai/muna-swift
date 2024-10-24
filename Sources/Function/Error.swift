@@ -2,7 +2,7 @@
 //  Error.swift
 //  Function
 //
-//  Created by Yusuf Olokoba on 9/28/24.
+//  Created by Yusuf Olokoba on 9/28/2024.
 //  Copyright © 2024 NatML Inc. All rights reserved.
 //
 

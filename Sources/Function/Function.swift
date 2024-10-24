@@ -9,6 +9,10 @@
 /// Function client.
 public class Function {
     
+    public protocol BuildConfiguration {
+        
+    }
+    
     /// Manage users.
     public let users: UserService
 
