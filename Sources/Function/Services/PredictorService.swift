@@ -7,13 +7,13 @@
 //
 
 public class PredictorService {
-    
+
     private let client: FunctionClient
-        
+
     internal init (client: FunctionClient) {
         self.client = client
     }
-    
+
     public func retrieve (tag: String) async throws -> Predictor? {
         do {
             return try await client.request(method: "GET", path: "/predictors/\(tag)") as Predictor?

@@ -9,7 +9,7 @@
 import Foundation
 
 public protocol TensorType {}
-//extension Float16: TensorType {} // requires Apple Silicon on macOS
+extension Float16: TensorType {}
 extension Float : TensorType {}
 extension Double : TensorType {}
 extension Int8 : TensorType {}

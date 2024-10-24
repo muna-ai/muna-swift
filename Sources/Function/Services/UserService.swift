@@ -7,13 +7,13 @@
 //
 
 public class UserService {
-    
+
     private let client: FunctionClient
-    
+
     internal init (client: FunctionClient) {
         self.client = client
     }
-    
+
     public func retrieve () async throws -> User? {
         do {
             return try await client.request(method: "GET", path: "/users") as User?

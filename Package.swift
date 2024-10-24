@@ -25,7 +25,8 @@ let package = Package(
         ),
         .binaryTarget(
             name: "Function",
-            path: "Frameworks/Function.xcframework"
+            url: "https://cdn.fxn.ai/fxnc/0.0.30/Function.xcframework.zip",
+            checksum: "80e92b9997e60651ac9ace5705e5ecd2d65c04f25a71f5dc82f4accd2df673fd"
         ),
         .testTarget(
             name: "FunctionTests",

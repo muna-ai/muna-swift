@@ -6,17 +6,16 @@
 //  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
-import Foundation
 import Function
 import Metal
 
 public class Configuration {
 
     internal var configuration: OpaquePointer?
-    
+
     public init () {
         var configuration: OpaquePointer?
-        let status = FXNConfigurationCreate(&configuration);
+        _ = FXNConfigurationCreate(&configuration);
         self.configuration = configuration;
     }
 
@@ -56,7 +55,7 @@ public class Configuration {
 
     public var acceleration: Acceleration {
         get {
-            var accel: FXNAcceleration = FXN_ACCELERATION_DEFAULT
+            var accel: FXNAcceleration = FXN_ACCELERATION_AUTO
             let status = FXNConfigurationGetAcceleration(configuration, &accel)
             return status == FXN_OK ? Acceleration(rawValue: accel.rawValue)! : .auto
         }

@@ -9,7 +9,7 @@
 import Foundation
 import Function
 
-public class PredictionService {
+public class PredictionService { // INCOMPLETE
 
     private let client: FunctionClient
 
@@ -38,7 +38,7 @@ public class PredictionService {
             continuation.finish()
         }
     }
-    
+
     private func createRawPrediction (
         tag: String,
         clientId: String? = nil,
@@ -54,7 +54,7 @@ public class PredictionService {
             ]
         )
     }
-    
+
     private func getResourceName (url: String) -> String {
         guard let uri = URL(string: url) else { return "" }
         return uri.lastPathComponent
