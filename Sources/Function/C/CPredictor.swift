@@ -18,16 +18,20 @@ internal class CPredictor {
         self.predictor = status == FXN_OK ? predictor : nil
     }
 
-    public func createPrediction (inputs: ValueMap) -> CPrediction? {
-        guard let predictor = predictor else { return nil }
+    public func createPrediction (inputs: ValueMap) throws -> CPrediction {
+        guard let predictor = predictor else {
+            throw FunctionError.invalidArgument
+        }
         var prediction: OpaquePointer?
         let status = FXNPredictorCreatePrediction(predictor, inputs.map, &prediction)
         guard status == FXN_OK, let validPrediction = prediction else { return nil }
         return CPrediction(prediction: validPrediction)
     }
 
-    public func streamPrediction (inputs: ValueMap) -> PredictionStream? {
-        guard let predictor = predictor else { return nil }
+    public func streamPrediction (inputs: ValueMap) throws -> PredictionStream {
+        guard let predictor = predictor else {
+            throw FunctionError.invalidArgument
+        }
         var stream: OpaquePointer?
         let status = FXNPredictorStreamPrediction(predictor, inputs.map, &stream)
         guard status == FXN_OK, let validStream = stream else { return nil }

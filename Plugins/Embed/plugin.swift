@@ -1,5 +1,5 @@
 //
-//  Embed.swift
+//  plugin.swift
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/24/2024.
@@ -12,38 +12,46 @@ import XcodeProjectPlugin
 
 @main
 struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
-    
+
     struct Configuration : Codable {
         public let tags: [String]
         public let envPath: String?
         public var apiUrl: String?
         public var accessKey: String?
     }
-    
+
     struct PredictionResource : Codable {
         public let type: String
         public let url: String
         public let name: String?
     }
-    
+
     struct Prediction : Codable {
         public let id: String
         public let tag: String
+        public var configuration: String?
         public let resources: [PredictionResource]
         public let created: String
+        public let error: String?
+        public let logs: String?
+    }
+
+    struct ResolvedConfiguration : Codable {
+
+        public let predictions: [Prediction]
+        
+        public init(predictions: [Prediction]) {
+            self.predictions = predictions
+        }
     }
 
     func performCommand (context: PluginContext, arguments: [String]) throws { }
-    
+
     func performCommand (context: XcodeProjectPlugin.XcodePluginContext, arguments: [String]) throws {
-        // Check valid target
-        let targetName = arguments[1]
-        guard let target = context.xcodeProject.targets.first(where: { $0.displayName == targetName }) else {
-            return
-        }
         // Check that a directory corresponding to the target exists
         let fileManager = FileManager.default;
         let projectPath = URL(fileURLWithPath: context.xcodeProject.directory.string)
+        let targetName = arguments[1]
         let targetPath = projectPath.appending(path: targetName, directoryHint: .isDirectory)
         if !fileManager.fileExists(atPath: targetPath.path) {
             return
@@ -57,71 +65,101 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         // Parse configuration
         let configPath = targetPath.appending(path: "fxn.config.swift")
         var config = try parseConfiguration(path: configPath.path)
-        // Parse env
         let defaultEnvPath = configPath.deletingLastPathComponent().appending(path: "fxn.xcconfig")
         let envPath = config.envPath ?? defaultEnvPath.path
         let env = try parseEnv(at: envPath)
         config.accessKey = env["FXN_ACCESS_KEY"] ?? ""
         config.apiUrl = env["FXN_API_URL"] ?? "https://api.fxn.ai/v1"
-        // Build payload
-        let payload: [String: Any] = [
-            "tag": config.tags[0],
-            "clientId": "ios-arm64"
-        ]
-        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
-        let url = URL(string: "\(config.apiUrl!)/predictions")
-        var request = URLRequest(url: url!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(config.accessKey!)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        // Request
-        var prediction: Prediction?
+        // Create predictions
+        var predictions: [Prediction] = []
         var predictionError: Error?
         let semaphore = DispatchSemaphore(value: 0)
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            defer {
-                semaphore.signal()
+        Task {
+            do {
+                predictions = try await createPredictions(config: config)
+            } catch {
+                predictionError = error
             }
-            if let error = error {
-                predictionError = FunctionError.networkError(error)
-                return
-            }
-            guard let httpResponse = response as? HTTPURLResponse else {
-                predictionError = FunctionError.invalidResponse
-                return
-            }
-            let jsonObject = try? JSONSerialization.jsonObject(with: data!, options: [])
-            let payload = jsonObject as? [String: Any]
-            if httpResponse.statusCode != 200 {
-                let errors = payload?["errors"] as? [[String: Any]]
-                if let message = errors?.first?["message"] as? String {
-                    predictionError = FunctionError.serverError(message)
-                } else {
-                    predictionError = FunctionError.invalidStatusCode(httpResponse.statusCode)
-                }
-                return
-            }
-            let decoder = JSONDecoder()
-            prediction = try? decoder.decode(Prediction.self, from: data!)
+            semaphore.signal()
         }
-        task.resume()
         semaphore.wait()
         // Check
         if let error = predictionError {
             throw error
         }
         // Download
-        for resource in prediction!.resources {
-            if resource.type == "dso" {
-                let url = URL(string: resource.url)
-                try downloadFramework(from: url!, to: frameworksPath)
+        for prediction in predictions {
+            for resource in prediction.resources {
+                if resource.type == "dso" {
+                    let url = URL(string: resource.url)
+                    try downloadFramework(from: url!, to: frameworksPath)
+                }
             }
         }
-        // Update manifest
-        
+        // Write
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        let resolvedConfig = ResolvedConfiguration(predictions: predictions)
+        let resolvedConfigData = try encoder.encode(resolvedConfig)
+        var resolvedConfigJson = String(data: resolvedConfigData, encoding: .utf8)!
+        let resolvedConfigPath = frameworksPath.appending(path: "fxn.resolved.json")
+        let resolvedPreamble = """
+        // Function
+        // This file is auto-generated. Do not modify.
+
+        """
+        resolvedConfigJson = resolvedPreamble + resolvedConfigJson
+        try resolvedConfigJson.write(to: resolvedConfigPath, atomically: true, encoding: .utf8)
     }
-    
+
+    private func createPredictions (config: Configuration) async throws -> [Prediction] {
+        guard let apiUrl = config.apiUrl, let accessKey = config.accessKey else {
+            throw FunctionError.invalidConfiguration
+        }
+        var predictions: [Prediction] = []
+        try await withThrowingTaskGroup(of: Prediction.self) { taskGroup in
+            for tag in config.tags {
+                taskGroup.addTask {
+                    // Build payload
+                    let payload: [String: Any] = [
+                        "tag": tag,
+                        "clientId": "ios-arm64"
+                    ]
+                    let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
+                    let url = URL(string: "\(apiUrl)/predictions")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("Bearer \(accessKey)", forHTTPHeaderField: "Authorization")
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.httpBody = jsonData
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw FunctionError.invalidResponse
+                    }
+                    if httpResponse.statusCode != 200 {
+                        let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
+                        let payload = jsonObject as? [String: Any]
+                        let errors = payload?["errors"] as? [[String: Any]]
+                        if let message = errors?.first?["message"] as? String {
+                            throw FunctionError.serverError(message)
+                        } else {
+                            throw FunctionError.invalidStatusCode(httpResponse.statusCode)
+                        }
+                    }
+                    let decoder = JSONDecoder()
+                    guard let prediction = try? decoder.decode(Prediction.self, from: data) else {
+                        throw FunctionError.invalidResponse
+                    }
+                    return prediction
+                }
+            }
+            for try await prediction in taskGroup {
+                predictions.append(prediction)
+            }
+        }
+        return predictions
+    }
+
     private func parseConfiguration (path: String) throws -> Configuration {
         let prefix = """
         public class Function {
@@ -184,27 +222,7 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         // Return
         return config
     }
-    
-    private func loadAuth (from path: String) throws -> (accessKey: String, apiUrl: String) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcodebuild")
-        process.arguments = ["-showBuildSettings", "-xcconfig", path, "-json"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        try process.run()
-        process.waitUntilExit()
-        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard let json = try? JSONSerialization.jsonObject(with: outputData, options: []) as? [[String: Any]] else {
-            throw FunctionError.invalidAuthConfig
-        }
-        guard let buildSettings = json.first?["buildSettings"] as? [String: Any] else {
-            throw FunctionError.invalidAuthConfig
-        }
-        let accessKey = buildSettings["FXN_ACCESS_KEY"] as? String ?? ""
-        let apiUrl = buildSettings["FXN_API_URL"] as? String ?? "https://api.fxn.ai/v1"
-        return (accessKey, apiUrl)
-    }
-    
+
     private func parseEnv (at path: String) throws -> [String: String] {
         let contents = try String(contentsOfFile: path, encoding: .utf8)
         var config: [String: String] = [:]
@@ -212,7 +230,7 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         for line in lines {
             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if trimmedLine.hasPrefix("//") || trimmedLine.isEmpty {
-                continue // Skip comments and empty lines
+                continue
             }
             let components = trimmedLine.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
             if components.count != 2 {
@@ -225,7 +243,7 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         }
         return config
     }
-    
+
     private func downloadFramework (from url: URL, to directory: URL) throws {
         let fileManager = FileManager.default
         let tempDirectory = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -243,7 +261,7 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         }
         try fileManager.removeItem(at: tempDirectory)
     }
-    
+
     private func unzipFile (at zipFilePath: URL, to destinationDirectory: URL) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
@@ -261,6 +279,6 @@ enum FunctionError: Error {
     case invalidResponse
     case invalidStatusCode(Int)
     case serverError(String)
-    case invalidAuthConfig
+    case invalidConfiguration
     case downloadError
 }

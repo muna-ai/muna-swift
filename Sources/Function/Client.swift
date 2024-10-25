@@ -48,29 +48,18 @@ internal class FunctionClient {
         // Request
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw FunctionAPIError.requestFailed(message: "Failed to request Function API", status: 500)
+            throw FunctionError.requestFailed(message: "Failed to request Function API", status: 500)
         }
         // Check error
         if httpResponse.statusCode >= 400 {
             let error = try? decoder.decode(ErrorResponse.self, from: data)
             guard let message = error?.errors.first?.message else {
-                throw FunctionAPIError.requestFailed(message: "An unknown error occurred", status: httpResponse.statusCode)
+                throw FunctionError.requestFailed(message: "An unknown error occurred", status: httpResponse.statusCode)
             }
-            throw FunctionAPIError.requestFailed(message: message, status: httpResponse.statusCode)
+            throw FunctionError.requestFailed(message: message, status: httpResponse.statusCode)
         }
         // Decode the response data
         return try decoder.decode(T.self, from: data)
-    }
-}
-
-public enum FunctionAPIError: Error {
-    
-    case requestFailed (message: String, status: Int)
-    
-    var localizedDescription: String {
-        switch self {
-            case .requestFailed(let message, _): return message
-        }
     }
 }
 

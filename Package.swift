@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Function",
     platforms: [
-        .iOS(.v14),
+        .iOS(.v15),
     ],
     products: [
         .library(
@@ -22,7 +22,10 @@ let package = Package(
         .target(
             name: "FunctionSwift",
             dependencies: ["Function"],
-            path: "Sources/Function"
+            path: "Sources/Function",
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
+            ]
         ),
         .binaryTarget(
             name: "Function",

@@ -12,6 +12,12 @@ internal class ValueMap {
 
     internal var map: OpaquePointer?
 
+    internal init () {
+        var map: OpaquePointer?
+        _ = FXNValueMapCreate(&map);
+        self.map = map;
+    }
+
     internal init (map: OpaquePointer?) {
         self.map = map
     }

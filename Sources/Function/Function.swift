@@ -6,14 +6,16 @@
 //  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
+import Foundation
+
 /// Function client.
 public class Function {
-    
-    /// Function build configuration.
+
+    /// Function project configuration.
     public struct Configuration : Codable {
-        
+
         public let tags: [String]
-        
+
         public let envPath: String?
 
         public init (tags: [String], envPath: String? = nil) {
@@ -21,7 +23,7 @@ public class Function {
             self.envPath = envPath
         }
     }
-    
+
     /// Manage users.
     public let users: UserService
 
@@ -30,12 +32,9 @@ public class Function {
 
     /// Make predictions.
     public let predictions: PredictionService
-    
-    /// Function version.
-    public static let version = "0.0.1" // INCOMPLETE // Use fxnc
 
     private let client: FunctionClient
-    
+
     /// Create the Function client.
     /// - Parameters:
     ///   - accessKey: Function access key.
@@ -46,5 +45,22 @@ public class Function {
         self.users = UserService(client: client)
         self.predictors = PredictorService(client: client)
         self.predictions = PredictionService(client: client)
+    }
+}
+
+enum FunctionError: Error {
+
+    case invalidArgument
+    case invalidOperation
+    case notImplemented
+    case requestFailed (message: String, status: Int)
+
+    var localizedDescription: String {
+        switch self {
+        case .invalidOperation: return "Operation is invalid"
+        case .invalidArgument:  return "One or more arguments are invalid"
+        case .notImplemented:   return "Operation is not implemented"
+        case .requestFailed(let message, _): return message
+        }
     }
 }
