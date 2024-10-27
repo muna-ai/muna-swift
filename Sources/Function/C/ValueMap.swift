@@ -12,10 +12,14 @@ internal class ValueMap {
 
     internal var map: OpaquePointer?
 
-    internal init () {
+    internal init () throws {
         var map: OpaquePointer?
-        _ = FXNValueMapCreate(&map);
-        self.map = map;
+        let status = FXNValueMapCreate(&map);
+        if status == FXN_OK {
+            self.map = map;
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     internal init (map: OpaquePointer?) {
@@ -23,17 +27,25 @@ internal class ValueMap {
     }
 
     public var count: Int {
-        get {
+        get throws {
             var count: Int32 = 0
-            FXNValueMapGetSize(map, &count)
-            return Int(count)
+            let status = FXNValueMapGetSize(map, &count)
+            if status == FXN_OK {
+                return Int(count)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public func key (at index: Int) -> String? {
+    public func key (at index: Int) throws -> String {
         var buffer = [CChar](repeating: 0, count: 2048)
         let status = FXNValueMapGetKey(map, Int32(index), &buffer, Int32(buffer.count))
-        return status == FXN_OK ? String(cString: buffer) : nil
+        if status == FXN_OK {
+            return String(cString: buffer)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public subscript (key: String) -> Value? {
@@ -41,7 +53,7 @@ internal class ValueMap {
             return key.withCString { cKey in
                 var value: OpaquePointer?
                 let status = FXNValueMapGetValue(map, cKey, &value)
-                return status == FXN_OK ? Value(value: value) : nil
+                return status == FXN_OK ? Value(value: value!) : nil
             }
         }
         set {

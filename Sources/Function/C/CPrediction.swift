@@ -12,54 +12,79 @@ internal class CPrediction {
 
     private var prediction: OpaquePointer?
 
-    internal init (prediction: OpaquePointer?) {
+    internal init (prediction: OpaquePointer) {
         self.prediction = prediction
     }
 
     public var id: String {
-        get {
+        get throws {
             var buffer = [CChar](repeating: 0, count: 2048)
-            _ = FXNPredictionGetID(prediction, &buffer, Int32(buffer.count))
-            return String(cString: buffer)
+            let status = FXNPredictionGetID(prediction, &buffer, Int32(buffer.count))
+            if status == FXN_OK {
+                return String(cString: buffer)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public var latency: Double? {
-        get {
+    public var latency: Double {
+        get throws {
             var latency = 0.0;
             let status = FXNPredictionGetLatency(prediction, &latency);
-            return status == FXN_OK ? latency : nil
+            if status == FXN_OK {
+                return latency
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
     public var results: ValueMap? {
-        get {
+        get throws {
             var map: OpaquePointer?
-            let status = FXNPredictionGetResults(prediction, &map)
+            var status = FXNPredictionGetResults(prediction, &map)
             if status != FXN_OK {
-                return nil
+                throw FunctionError.from(status: status)
             }
             var count: Int32 = 0
-            FXNValueMapGetSize(map, &count)
+            status = FXNValueMapGetSize(map, &count)
+            if status != FXN_OK {
+                throw FunctionError.from(status: status)
+            }
             return count > 0 ? ValueMap(map: map) : nil
         }
     }
 
     public var error: String? {
-        get {
+        get throws {
             var buffer = [CChar](repeating: 0, count: 2048)
             let status = FXNPredictionGetError(prediction, &buffer, Int32(buffer.count))
-            return status == FXN_OK ? String(cString: buffer) : nil
+            if status == FXN_ERROR_INVALID_OPERATION {
+                return nil
+            }
+            if status == FXN_OK {
+                return String(cString: buffer)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
     public var logs: String {
-        get {
+        get throws {
             var length: Int32 = 0
-            FXNPredictionGetLogLength(prediction, &length)
-            var buffer = [CChar](repeating: 0, count: Int(length))
-            FXNPredictionGetLogs(prediction, &buffer, Int32(buffer.count))
-            return String(cString: buffer)
+            var status = FXNPredictionGetLogLength(prediction, &length)
+            if status != FXN_OK {
+                throw FunctionError.from(status: status)
+            }
+            var buffer = [CChar](repeating: 0, count: Int(length) + 1)
+            status = FXNPredictionGetLogs(prediction, &buffer, Int32(buffer.count))
+            if status == FXN_OK {
+                return String(cString: buffer)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 

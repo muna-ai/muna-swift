@@ -17,7 +17,7 @@ public class PredictorService {
     public func retrieve (tag: String) async throws -> Predictor? {
         do {
             return try await client.request(method: "GET", path: "/predictors/\(tag)") as Predictor?
-        } catch let error as FunctionAPIError {
+        } catch let error as FunctionError {
             switch error {
                 case .requestFailed(_, let status) where status == 404: return nil
                 default: throw error

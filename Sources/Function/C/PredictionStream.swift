@@ -16,12 +16,17 @@ internal class PredictionStream {
         self.stream = stream
     }
 
-    public func readNext () -> CPrediction? {
-        guard let stream = stream else { return nil }
+    public func readNext () throws -> CPrediction? {
         var prediction: OpaquePointer?
-        _ = FXNPredictionStreamReadNext(stream, &prediction)
-        guard let nextPrediction = prediction else { return nil }
-        return CPrediction(prediction: nextPrediction)
+        let status = FXNPredictionStreamReadNext(stream, &prediction)
+        if status == FXN_ERROR_INVALID_OPERATION {
+            return nil
+        }
+        if status == FXN_OK {
+            return CPrediction(prediction: prediction!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public func dispose () {

@@ -6,7 +6,7 @@
 //  Copyright © 2024 NatML Inc. All rights reserved.
 //
 
-import Foundation
+import Function
 
 /// Function client.
 public class Function {
@@ -50,17 +50,26 @@ public class Function {
 
 enum FunctionError: Error {
 
-    case invalidArgument
-    case invalidOperation
+    case invalidArgument (message: String? = nil)
+    case invalidOperation (message: String? = nil)
     case notImplemented
     case requestFailed (message: String, status: Int)
 
     var localizedDescription: String {
         switch self {
-        case .invalidOperation: return "Operation is invalid"
-        case .invalidArgument:  return "One or more arguments are invalid"
-        case .notImplemented:   return "Operation is not implemented"
-        case .requestFailed(let message, _): return message
+        case .invalidOperation(let message):    return message ?? "Operation is invalid"
+        case .invalidArgument(let message):     return message ?? "One or more arguments are invalid"
+        case .notImplemented:                   return "Operation is not implemented"
+        case .requestFailed(let message, _):    return message
+        }
+    }
+    
+    internal static func from (status: FXNStatus) -> FunctionError {
+        switch status {
+        case FXN_ERROR_INVALID_ARGUMENT:    return .invalidArgument()
+        case FXN_ERROR_INVALID_OPERATION:   return .invalidOperation()
+        case FXN_ERROR_NOT_IMPLEMENTED:     return .notImplemented
+        default:                            return .invalidOperation()
         }
     }
 }

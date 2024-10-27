@@ -12,30 +12,34 @@ internal class CPredictor {
 
     private var predictor: OpaquePointer?
 
-    public init (configuration: Configuration) {
+    public init (configuration: Configuration) throws {
         var predictor: OpaquePointer?
         let status = FXNPredictorCreate(configuration.configuration, &predictor)
-        self.predictor = status == FXN_OK ? predictor : nil
+        if status == FXN_OK {
+            self.predictor = predictor!
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public func createPrediction (inputs: ValueMap) throws -> CPrediction {
-        guard let predictor = predictor else {
-            throw FunctionError.invalidArgument
-        }
         var prediction: OpaquePointer?
         let status = FXNPredictorCreatePrediction(predictor, inputs.map, &prediction)
-        guard status == FXN_OK, let validPrediction = prediction else { return nil }
-        return CPrediction(prediction: validPrediction)
+        if status == FXN_OK {
+            return CPrediction(prediction: prediction!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public func streamPrediction (inputs: ValueMap) throws -> PredictionStream {
-        guard let predictor = predictor else {
-            throw FunctionError.invalidArgument
-        }
         var stream: OpaquePointer?
         let status = FXNPredictorStreamPrediction(predictor, inputs.map, &stream)
-        guard status == FXN_OK, let validStream = stream else { return nil }
-        return PredictionStream(stream: validStream)
+        if status == FXN_OK {
+            return PredictionStream(stream: stream!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public func dispose () {

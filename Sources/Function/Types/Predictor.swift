@@ -81,7 +81,7 @@ public struct Parameter : Codable {
     var enumeration: [EnumerationMember]?
     
     /// Parameter default value.
-    var defaultValue: Any? // INCOMPLETE
+    var defaultValue: Any? // CHECKx
     
     private enum CodingKeys: String, CodingKey {
         case name, type, description, optional, range, enumeration

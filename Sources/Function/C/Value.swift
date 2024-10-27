@@ -19,73 +19,91 @@ internal class Value {
 
     internal var value: OpaquePointer?
 
-    internal init (value: OpaquePointer?) {
+    internal init (value: OpaquePointer) {
         self.value = value
     }
 
     public var data: UnsafeRawPointer? {
-        guard let value = value else { return nil }
-        var dataPointer: UnsafeMutableRawPointer?
-        let status = FXNValueGetData(value, &dataPointer)
-        return status == FXN_OK ? UnsafeRawPointer(dataPointer) : nil
+        get throws {
+            var dataPointer: UnsafeMutableRawPointer?
+            let status = FXNValueGetData(value, &dataPointer)
+            if status == FXN_OK {
+                return UnsafeRawPointer(dataPointer)
+            } else {
+                throw FunctionError.from(status: status)
+            }
+        }
     }
 
     public var type: Dtype {
-        guard let value = value else { return .null }
-        var dtype: FXNDtype = FXN_DTYPE_NULL;
-        let status = FXNValueGetType(value, &dtype)
-        return status == FXN_OK ? Dtype(rawValue: dtype.rawValue)! : .null;
-    }
-
-    public var shape: [Int]? {
-        guard let value = value else { return nil }
-        var dimensions: Int32 = 0
-        FXNValueGetDimensions(value, &dimensions)
-        if dimensions > 0 {
-            var shapeArray = [Int32](repeating: 0, count: Int(dimensions))
-            let status = FXNValueGetShape(value, &shapeArray, dimensions)
-            return status == FXN_OK ? shapeArray.map{ Int($0) } : nil
+        get throws {
+            var dtype: FXNDtype = FXN_DTYPE_NULL;
+            let status = FXNValueGetType(value, &dtype)
+            if status == FXN_OK {
+                return Dtype(rawValue: dtype.rawValue)!
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
-        return nil
     }
 
-    public func toObject () -> Any? {
-        switch type {
+    public var shape: [Int] {
+        get throws {
+            var dimensions: Int32 = 0
+            var status = FXNValueGetDimensions(value, &dimensions)
+            if status != FXN_OK {
+                throw FunctionError.from(status: status)
+            }
+            if dimensions == 0 {
+                return []
+            }
+            var shapeArray = [Int32](repeating: 0, count: Int(dimensions))
+            status = FXNValueGetShape(value, &shapeArray, dimensions)
+            if status == FXN_OK {
+                return shapeArray.map{ Int($0) }
+            } else {
+                throw FunctionError.from(status: status)
+            }
+        }
+    }
+
+    public func toObject () throws -> Any? {
+        switch try type {
         case .null:
             return nil
         case .float16:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Float16.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Float16.self), shape: try shape)
         case .float32:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Float.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Float.self), shape: try shape)
         case .float64:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Double.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Double.self), shape: try shape)
         case .int8:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Int8.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Int8.self), shape: try shape)
         case .int16:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Int16.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Int16.self), shape: try shape)
         case .int32:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Int32.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Int32.self), shape: try shape)
         case .int64:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Int64.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Int64.self), shape: try shape)
         case .uint8:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: UInt8.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: UInt8.self), shape: try shape)
         case .uint16:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: UInt16.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: UInt16.self), shape: try shape)
         case .uint32:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: UInt32.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: UInt32.self), shape: try shape)
         case .uint64:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: UInt64.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: UInt64.self), shape: try shape)
         case .bool:
-            return Value.toTensor(data: data!.assumingMemoryBound(to: Bool.self), shape: shape!)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Bool.self), shape: try shape)
         case .string:
-            return String(cString: data!.assumingMemoryBound(to: CChar.self))
+            return String(cString: try data!.assumingMemoryBound(to: CChar.self))
         case .list, .dict:
-            let jsonString = String(cString: data!.assumingMemoryBound(to: CChar.self))
+            let jsonString = String(cString: try data!.assumingMemoryBound(to: CChar.self))
             let data = jsonString.data(using: .utf8)!
             let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [Any]
             return jsonObject
         case .image:
-            let shape = shape!
+            let shape = try shape
             let height = shape[0]
             let width = shape[1]
             let channels = shape[2]
@@ -125,7 +143,7 @@ internal class Value {
                 return nil
             }
             var srcBuffer = vImage_Buffer(
-                data: UnsafeMutableRawPointer(mutating: data!),
+                data: UnsafeMutableRawPointer(mutating: try data!),
                 height: vImagePixelCount(height),
                 width: vImagePixelCount(width),
                 rowBytes: width * channels
@@ -142,8 +160,8 @@ internal class Value {
             }
             return pixelBuffer
         case .binary:
-            let count = shape![0]
-            let data = Data(bytes: data!, count: Int(count))
+            let count = try shape[0]
+            let data = Data(bytes: try data!, count: Int(count))
             return data
         }
     }
@@ -155,7 +173,7 @@ internal class Value {
         value = nil
     }
     
-    public static func createArray<T> (data: Tensor<T>, flags: ValueFlags = .none) -> Value? {
+    public static func createArray<T> (data: Tensor<T>, flags: ValueFlags = .none) throws -> Value {
         var value: OpaquePointer?
         let dtype = FXNDtype(rawValue: data.dataType.rawValue)
         let shape = data.shape.map { Int32($0) }
@@ -167,50 +185,54 @@ internal class Value {
             FXNValueFlags(rawValue: flags.rawValue),
             &value
         );
-        return status == FXN_OK ? Value(value: value) : nil
+        if status == FXN_OK {
+            return Value(value: value!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
-    public static func createString (data: String) -> Value? {
-        return data.withCString { cString in
+    public static func createString (data: String) throws -> Value {
+        return try data.withCString { cString in
             var value: OpaquePointer?
             let status = FXNValueCreateList(cString, &value)
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public static func createList (data: [Any]) -> Value? {
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: data, options: []) else {
-            print("Function Error: Failed to create list value because data could not be serialized to JSON")
-            return nil
-        }
-        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
-            print("Function Error: Failed to create list value because data could not be serialized to JSON string")
-            return nil
-        }
-        return jsonString.withCString { cString in
+    public static func createList (data: [Any]) throws -> Value {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+        return try jsonString.withCString { cString in
             var value: OpaquePointer?
             let status = FXNValueCreateList(cString, &value)
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public static func createDict (data: [String: Any]) -> Value? {
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: data, options: []) else {
-            print("Function Error: Failed to create dictionary value because data could not be serialized to JSON")
-            return nil
-        }
-        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
-            print("Function Error: Failed to create dictionary value because data could not be serialized to JSON string")
-            return nil
-        }
-        return jsonString.withCString { cString in
+    public static func createDict (data: [String: Any]) throws -> Value {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+        return try jsonString.withCString { cString in
             var value: OpaquePointer?
             let status = FXNValueCreateDict(cString, &value)
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public static func createImage (pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) -> Value? {
+    public static func createImage (pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
@@ -219,9 +241,7 @@ internal class Value {
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-            return nil
-        }
+        let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)!
         let bytesPerPixel: Int
         let channels: Int32
         var zeroCopy = false
@@ -254,12 +274,14 @@ internal class Value {
                 FXNValueFlags(rawValue: flags.rawValue),
                 &value
             )
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
         if pixelFormat == kCVPixelFormatType_32BGRA {
-            guard let packedBuffer = malloc(width * height * 4) else {
-                return nil
-            }
+            let packedBuffer = malloc(width * height * 4)!
             defer {
                 free(packedBuffer)
             }
@@ -278,8 +300,7 @@ internal class Value {
             let permuteMap: [UInt8] = [2, 1, 0, 3]
             let error = vImagePermuteChannels_ARGB8888(&srcBuffer, &destBuffer, permuteMap, vImage_Flags(kvImageNoFlags))
             if error != kvImageNoError {
-                print("Function Error: Failed to create image value because pixel buffer could not be permuted with error: \(error)")
-                return nil
+                throw FunctionError.invalidOperation(message: "Pixel buffer could not be permuted to `RGBA8888` with error: \(error)")
             }
             var value: OpaquePointer?
             let status = FXNValueCreateImage(
@@ -290,15 +311,18 @@ internal class Value {
                 FXNValueFlags(rawValue: flags.rawValue | FXN_VALUE_FLAG_COPY_DATA.rawValue),
                 &value
             )
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
-        print("Function Error: Failed to create image value because pixel value has unsupported format: \(pixelFormat)")
-        return nil
+        throw FunctionError.invalidArgument(message: "Pixel buffer has unsupported format: \(pixelFormat)")
     }
 
-    public static func createBinary (buffer: Data, flags: ValueFlags = .none) -> Value? {
-        return buffer.withUnsafeBytes { rawBufferPointer in
-            guard let bufferPtr = rawBufferPointer.baseAddress else { return nil }
+    public static func createBinary (buffer: Data, flags: ValueFlags = .none) throws -> Value {
+        return try buffer.withUnsafeBytes { rawBufferPointer in
+            let bufferPtr = rawBufferPointer.baseAddress
             let data = UnsafeMutableRawPointer(mutating: bufferPtr)
             var value: OpaquePointer?
             let status = FXNValueCreateBinary(
@@ -307,16 +331,24 @@ internal class Value {
                 FXNValueFlags(UInt32(flags.rawValue)),
                 &value
             );
-            return status == FXN_OK ? Value(value: value) : nil
+            if status == FXN_OK {
+                return Value(value: value!)
+            } else {
+                throw FunctionError.from(status: status)
+            }
         }
     }
 
-    public static func createNull () -> Value? {
+    public static func createNull () throws -> Value {
         var value: OpaquePointer?
-        FXNValueCreateNull(&value)
-        return Value(value: value)
+        let status = FXNValueCreateNull(&value)
+        if status == FXN_OK {
+            return Value(value: value!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
-    
+
     private static func toTensor<T: TensorType> (data: UnsafePointer<T>, shape: [Int]) -> Any? {
         if shape.isEmpty {
             return data.pointee

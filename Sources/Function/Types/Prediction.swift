@@ -21,10 +21,10 @@ public struct Prediction: Codable {
     var created: Date
     
     /// Prediction results.
-    var results: [Any]?
+    var results: [Any?]?
     
     /// Prediction latency in milliseconds.
-    var latency: Float?
+    var latency: Double?
     
     /// Prediction error.
     var error: String?
@@ -32,14 +32,14 @@ public struct Prediction: Codable {
     /// Prediction logs.
     var logs: String?
     
-    /// Prediction resources.
-    var resources: [PredictionResource]?
-        
     /// Prediction configuration token.
     var configuration: String?
     
+    /// Prediction resources.
+    var resources: [PredictionResource]?
+    
     private enum CodingKeys: String, CodingKey {
-        case id, tag, created, latency, error, logs, resources
+        case id, tag, created, latency, error, logs, configuration, resources
     }
 }
 
