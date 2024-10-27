@@ -12,23 +12,23 @@ import Foundation
 public struct User: Codable {
     
     /// Username.
-    var username: String
+    public var username: String
     
     /// Date created.
-    var created: Date
+    public var created: Date
     
     /// User display name.
-    var name: String?
+    public var name: String?
     
     /// User avatar.
-    var avatar: String?
+    public var avatar: String?
     
     /// User bio.
-    var bio: String?
+    public var bio: String?
     
     /// User website.
-    var website: String?
+    public var website: String?
     
     /// User GitHub handle.
-    var github: String?
+    public var github: String?
 }

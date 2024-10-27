@@ -12,76 +12,76 @@ import Foundation
 public struct Predictor: Codable {
     
     /// Predictor tag.
-    var tag: String
+    public var tag: String
     
     /// Predictor owner.
-    var owner: User
+    public var owner: User
     
     /// Predictor name.
-    var name: String
+    public var name: String
 
     /// Predictor access.
-    var access: AccessMode
+    public var access: AccessMode
     
     /// Predictor status.
-    var status: PredictorStatus
+    public var status: PredictorStatus
     
     /// Date created.
-    var created: Date
+    public var created: Date
     
     /// Predictor description.
-    var description: String?
+    public var description: String?
     
     /// Predictor card.
-    var card: String?
+    public var card: String?
     
     /// Predictor media URL.
-    var media: String?
+    public var media: String?
     
     /// Predictor signature.
-    var signature: Signature?
+    public var signature: Signature?
     
     /// Predictor provisioning error.
     /// This is populated when the predictor status is `INVALID`.
-    var error: String?
+    public var error: String?
     
     /// Predictor license URL.
-    var license: String?
+    public var license: String?
 }
 
 /// Predictor signature.
 public struct Signature : Codable {
     
     /// Prediction inputs.
-    var inputs: [Parameter]
+    public var inputs: [Parameter]
     
     /// Prediction outputs.
-    var outputs: [Parameter]
+    public var outputs: [Parameter]
 }
 
 /// Predictor parameter.
 public struct Parameter : Codable {
     
     /// Parameter name.
-    var name: String?
+    public var name: String?
     
     /// Parameter type.
-    var type: Dtype?
+    public var type: Dtype?
     
     /// Parameter description.
-    var description: String?
+    public var description: String?
     
     /// Parameter is optional.
-    var optional: Bool?
+    public var optional: Bool?
     
     /// Parameter value range for numeric parameters.
-    var range: [Float]?
+    public var range: [Float]?
     
     /// Parameter value choices for enumeration parameters.
-    var enumeration: [EnumerationMember]?
+    public var enumeration: [EnumerationMember]?
     
     /// Parameter default value.
-    var defaultValue: Any? // CHECKx
+    var defaultValue: Any? // CHECK
     
     private enum CodingKeys: String, CodingKey {
         case name, type, description, optional, range, enumeration
@@ -92,10 +92,10 @@ public struct Parameter : Codable {
 public struct EnumerationMember: Codable {
     
     /// Enumeration member name.
-    var name: String
+    public var name: String
     
     /// Enumeration member value.
-    var value: EnumerationValue
+    public var value: EnumerationValue
 }
 
 /// Predictor status.
