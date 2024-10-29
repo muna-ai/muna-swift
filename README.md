@@ -93,7 +93,7 @@ Next, right click on your project and run the `Embed Predictors` command on your
 
 Function will download the prediction function as a dynamic framework, then configure Xcode to embed the framework into your app bundle.
 
-> [!IMPORTANT]
+> [!NOTE]
 > The `Embed Predictors` script requires internet and file system access to download and embed the prediction function into your Xcode project.
 
 > [!IMPORTANT]
