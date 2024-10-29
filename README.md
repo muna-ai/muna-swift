@@ -20,7 +20,7 @@ Function is distributed as a SwiftPM package, and can be added as a dependency i
 In your project editor, open the `Package Dependencies` tab, search 
 for `https://github.com/fxnai/fxnios.git` and add the package to your project:
 
-[GIF here]
+![Xcode2](https://github.com/user-attachments/assets/dc1468bd-04d9-40bf-b15b-4fa261848aae)
 
 ### In Swift Package Manager
 Add the following dependency to your `Package.swift` file:
@@ -72,6 +72,32 @@ Finally, use the prediction results:
 // Print
 print("Prediction result: \(prediction.results![0]!)")
 ```
+
+## Embedding Predictors
+Function normally works by downloading and executing prediction functions at runtime. But because iOS prohibits executing remote code, you must 
+download and embed predictors at build-time instead. The first step is to create an `fxn.config.swift` file at the root of your target directory:
+```swift
+import FunctionSwift
+
+let config = Function.Configuration(
+    // add all predictor tags to be embedded here
+    tags: [
+        "@fxn/greeting"
+    ]
+)
+```
+
+Next, right click on your project and run the `Embed Predictors` command on your app target:
+
+![Embed](https://github.com/user-attachments/assets/fba1e234-d178-41ee-8843-202ea87aeab0)
+
+Function will download the prediction function as a dynamic framework, then configure Xcode to embed the framework into your app bundle.
+
+> [!IMPORTANT]
+> The `Embed Predictors` script requires internet and file system access to download and embed the prediction function into your Xcode project.
+
+> [!IMPORTANT]
+> After embedding, Xcode might prompt you to either reload the project from disk or keep the current version in memory. **Always reload your project from disk**.
 
 ## Useful Links
 - [Discover predictors to use in your apps](https://fxn.ai/explore).
