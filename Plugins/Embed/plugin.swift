@@ -50,9 +50,9 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
     func performCommand (context: XcodeProjectPlugin.XcodePluginContext, arguments: [String]) throws {
         // Check that a directory corresponding to the target exists
         let fileManager = FileManager.default;
-        let projectPath = URL(fileURLWithPath: context.xcodeProject.directory.string)
+        let projectUrl = URL(fileURLWithPath: context.xcodeProject.directory.string)
         let targetName = arguments[1]
-        let targetPath = projectPath.appending(path: targetName, directoryHint: .isDirectory)
+        let targetPath = projectUrl.appending(path: targetName, directoryHint: .isDirectory)
         if !fileManager.fileExists(atPath: targetPath.path) {
             return
         }
@@ -88,21 +88,27 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
             throw error
         }
         // Download
+        var frameworks: [String] = []
         for prediction in predictions {
             for resource in prediction.resources {
                 if resource.type == "dso" {
                     let url = URL(string: resource.url)
-                    try downloadFramework(from: url!, to: frameworksPath)
+                    let path = try downloadFramework(from: url!, to: frameworksPath)
+                    frameworks.append(path)
                 }
             }
         }
+        // Embed
+        var extractor = ArgumentExtractor(arguments)
+        let target = extractor.extractOption(named: "target")[0]
+        try embedFrameworks(context: context, target: target, frameworks: frameworks)
         // Write
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         let resolvedConfig = ResolvedConfiguration(predictions: predictions)
         let resolvedConfigData = try encoder.encode(resolvedConfig)
         var resolvedConfigJson = String(data: resolvedConfigData, encoding: .utf8)!
-        let resolvedConfigPath = frameworksPath.appending(path: "fxn.resolved.json")
+        let resolvedConfigPath = frameworksPath.appending(path: "fxn.resolved")
         let resolvedPreamble = """
         // Function
         // This file is auto-generated. Do not modify.
@@ -226,6 +232,9 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
     private func parseEnv (at path: String) throws -> [String: String] {
         let contents = try String(contentsOfFile: path, encoding: .utf8)
         var config: [String: String] = [:]
+        config.merge(ProcessInfo.processInfo.environment) { current, new in
+            return new
+        }
         let lines = contents.split(separator: "\n")
         for line in lines {
             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -244,7 +253,10 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         return config
     }
 
-    private func downloadFramework (from url: URL, to directory: URL) throws {
+    private func downloadFramework (
+        from url: URL,
+        to directory: URL
+    ) throws -> String {
         let fileManager = FileManager.default
         let tempDirectory = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: tempDirectory, withIntermediateDirectories: true, attributes: nil)
@@ -254,12 +266,43 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         let unzippedDirectory = tempDirectory.appendingPathComponent("unzipped")
         try fileManager.createDirectory(at: unzippedDirectory, withIntermediateDirectories: true, attributes: nil)
         try unzipFile(at: downloadedFilePath, to: unzippedDirectory)
-        let unzippedContents = try fileManager.contentsOfDirectory(at: unzippedDirectory, includingPropertiesForKeys: nil, options: [])
-        for content in unzippedContents {
-            let destination = directory.appendingPathComponent(content.lastPathComponent)
-            try fileManager.copyItem(at: content, to: destination)
-        }
+        let frameworkUrl = try fileManager.contentsOfDirectory(at: unzippedDirectory, includingPropertiesForKeys: nil, options: [])[0]
+        let destinationUrl = directory.appendingPathComponent(frameworkUrl.lastPathComponent)
+        try fileManager.copyItem(at: frameworkUrl, to: destinationUrl)
         try fileManager.removeItem(at: tempDirectory)
+        return destinationUrl.lastPathComponent
+    }
+
+    private func embedFrameworks (
+        context: XcodeProjectPlugin.XcodePluginContext,
+        target: String,
+        frameworks: [String]
+    ) throws {
+        let fileManager = FileManager.default
+        let projectUrl = URL(fileURLWithPath: context.xcodeProject.directory.string)
+        let embedder = try context.tool(named: "FunctionEmbedder")
+        let xcodeProjPath = try fileManager.contentsOfDirectory(at: projectUrl, includingPropertiesForKeys: nil)
+            .compactMap{ $0.pathExtension == "xcodeproj" ? $0.path : nil }
+            .first!
+        let process = Process()
+        let errorPipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: embedder.path.string)
+        process.arguments = frameworks + [
+            "--project", "\(xcodeProjPath)",
+            "--target", "\(target)"
+        ]
+        process.standardError = errorPipe
+        try process.run()
+        process.waitUntilExit()
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorOutput = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw NSError(
+                domain: "ScriptExecutionError",
+                code: Int(process.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: errorOutput]
+            )
+        }
     }
 
     private func unzipFile (at zipFilePath: URL, to destinationDirectory: URL) throws {

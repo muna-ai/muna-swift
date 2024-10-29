@@ -18,6 +18,10 @@ let package = Package(
             targets: ["Embed Predictors"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(url: "https://github.com/fxnai/XcodeProj.git", revision: "6bb836a")
+    ],
     targets: [
         .target(
             name: "FunctionSwift",
@@ -36,6 +40,14 @@ let package = Package(
             name: "FunctionTests",
             dependencies: ["FunctionSwift"]
         ),
+        .executableTarget(
+            name: "FunctionEmbedder",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "XcodeProj", package: "XcodeProj")
+            ],
+            path: "Sources/Embed"
+        ),
         .plugin(
             name: "Embed Predictors",
             capability: .command(
@@ -51,6 +63,7 @@ let package = Package(
                     .writeToPackageDirectory(reason: "Allow Function to embed predictors into your app.")
                 ]
             ),
+            dependencies: ["FunctionEmbedder"],
             path: "Plugins/Embed"
         )
     ]

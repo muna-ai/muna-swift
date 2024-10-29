@@ -16,7 +16,7 @@ public class PredictionService {
     private let client: FunctionClient
     private var cache: [String: CPredictor]
     private static let predictionCache: [String: Prediction] = {
-        guard let url = Bundle.main.url(forResource: "fxn.resolved", withExtension: "json") else {
+        guard let url = Bundle.main.url(forResource: "fxn", withExtension: "resolved") else {
             return [:]
         }
         guard let data = try? Data(contentsOf: url) else {
