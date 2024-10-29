@@ -18,7 +18,7 @@ Function is distributed as a SwiftPM package, and can be added as a dependency i
 
 ### In Xcode
 In your project editor, open the `Package Dependencies` tab, search 
-for `https://github.com/fxnai/fxnios.git` and add the package to your project:
+for https://github.com/fxnai/fxnios.git and add the package to your project:
 
 ![Xcode2](https://github.com/user-attachments/assets/dc1468bd-04d9-40bf-b15b-4fa261848aae)
 
@@ -74,8 +74,9 @@ print("Prediction result: \(prediction.results![0]!)")
 ```
 
 ## Embedding Predictors
-Function normally works by downloading and executing prediction functions at runtime. But because iOS prohibits executing remote code, you must 
-download and embed predictors at build-time instead. The first step is to create an `fxn.config.swift` file at the root of your target directory:
+Function normally works by downloading and executing prediction functions at runtime. But because iOS requires 
+strict sandboxing, ou must download and embed predictors at build-time instead.
+The first step is to create an `fxn.config.swift` file at the root of your target directory:
 ```swift
 import FunctionSwift
 
