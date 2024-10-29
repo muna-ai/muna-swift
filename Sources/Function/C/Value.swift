@@ -349,7 +349,7 @@ internal class Value {
         }
     }
 
-    private static func toTensor<T: TensorType> (data: UnsafePointer<T>, shape: [Int]) -> Any? {
+    private static func toTensor<T: TensorType> (data: UnsafePointer<T>, shape: [Int]) -> Any {
         if shape.isEmpty {
             return data.pointee
         }

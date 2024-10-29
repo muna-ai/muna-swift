@@ -49,7 +49,7 @@ FXN_ACCESS_KEY="<ACCESS KEY>"
 ```
 
 > [!CAUTION]
-> Make sure that your `fxn.xcconfig` file is excluded from source control by adding it to your `.gitignore` file. Never share your access key.
+> Make sure that your `fxn.xcconfig` file is excluded from source control by adding it to your `.gitignore` file. **Never share your access key**.
 
 ## Making a Prediction
 First, create a Function client:
@@ -61,7 +61,7 @@ let fxn = Function(accessKey: "...")
 ```
 Then make a prediction:
 ```swift
-// Make a prediction
+// 🔥 Make a prediction
 let prediction = try await fxn.predictions.create(
     tag: "@fxn/greeting",
     inputs: ["name": "Sam"]
@@ -69,7 +69,7 @@ let prediction = try await fxn.predictions.create(
 ```
 Finally, use the prediction results:
 ```swift
-// Print
+// 🚀 Use the results
 print("Prediction result: \(prediction.results![0]!)")
 ```
 
