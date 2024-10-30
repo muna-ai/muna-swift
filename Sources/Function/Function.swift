@@ -50,15 +50,15 @@ public class Function {
 
 enum FunctionError: Error {
 
-    case invalidArgument (message: String? = nil)
-    case invalidOperation (message: String? = nil)
+    case invalidArgument (message: String = "One or more arguments are invalid")
+    case invalidOperation (message: String = "Operation is invalid")
     case notImplemented
     case requestFailed (message: String, status: Int)
 
     var localizedDescription: String {
         switch self {
-        case .invalidOperation(let message):    return message ?? "Operation is invalid"
-        case .invalidArgument(let message):     return message ?? "One or more arguments are invalid"
+        case .invalidOperation(let message):    return message
+        case .invalidArgument(let message):     return message
         case .notImplemented:                   return "Operation is not implemented"
         case .requestFailed(let message, _):    return message
         }

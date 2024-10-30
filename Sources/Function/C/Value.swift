@@ -116,7 +116,7 @@ internal class Value {
             case 4:
                 pixelFormatType = kCVPixelFormatType_32ARGB
             default:
-                return nil
+                throw FunctionError.invalidOperation(message: "Cannot convert value to image because channel count is invalid: \(channels)")
             }
             var pixelBuffer: CVPixelBuffer?
             let attrs: [String: Any] = [ // CHECK // IOSurface??
@@ -133,14 +133,14 @@ internal class Value {
                 &pixelBuffer
             )
             guard cvStatus == kCVReturnSuccess, let pixelBuffer = pixelBuffer else {
-                return nil
+                throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be created with error: \(cvStatus)")
             }
             CVPixelBufferLockBaseAddress(pixelBuffer, [])
             defer {
                 CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
             }
             guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-                return nil
+                throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be locked for writing")
             }
             var srcBuffer = vImage_Buffer(
                 data: UnsafeMutableRawPointer(mutating: try data!),
@@ -154,9 +154,14 @@ internal class Value {
                 width: vImagePixelCount(width),
                 rowBytes: CVPixelBufferGetBytesPerRow(pixelBuffer)
             )
-            let vStatus = vImageCopyBuffer(&srcBuffer, &dstBuffer, channels, vImage_Flags(kvImageNoFlags))
+            let vStatus = vImageCopyBuffer(
+                &srcBuffer,
+                &dstBuffer,
+                channels,
+                vImage_Flags(kvImageNoFlags)
+            )
             guard vStatus == kvImageNoError else {
-                return nil
+                throw FunctionError.invalidOperation(message: "Cannot convert value to image because pixel data could not be copied with error: \(vStatus)")
             }
             return pixelBuffer
         case .binary:
@@ -233,6 +238,12 @@ internal class Value {
     }
 
     public static func createImage (pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
+        let FORMAT_TO_CHANNELS = [
+            kCVPixelFormatType_OneComponent8: 1,
+            kCVPixelFormatType_24RGB: 3,
+            kCVPixelFormatType_32ARGB: 4,
+            kCVPixelFormatType_32BGRA: 4
+        ]
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
@@ -242,49 +253,23 @@ internal class Value {
         let height = CVPixelBufferGetHeight(pixelBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)!
-        let bytesPerPixel: Int
-        let channels: Int32
-        var zeroCopy = false
-        switch pixelFormat {
-        case kCVPixelFormatType_OneComponent8:
-            bytesPerPixel = 1
-            channels = 1
-            zeroCopy = true
-        case kCVPixelFormatType_24RGB:
-            bytesPerPixel = 3
-            channels = 3
-            zeroCopy = true
-        case kCVPixelFormatType_32ARGB:
-            bytesPerPixel = 4
-            channels = 4
-            zeroCopy = true
-        default:
-            bytesPerPixel = 0
-            channels = 0
+        guard let channels = FORMAT_TO_CHANNELS[pixelFormat] else {
+            throw FunctionError.invalidArgument(message: "Pixel buffer has unsupported format: \(pixelFormat)")
         }
-        let expectedBytesPerRow = bytesPerPixel * width
-        zeroCopy = zeroCopy && bytesPerRow == expectedBytesPerRow
+        let packedBytesPerRow = width * channels
+        let isZeroCopyFormat =
+            pixelFormat == kCVPixelFormatType_OneComponent8 ||
+            pixelFormat == kCVPixelFormatType_24RGB ||
+            pixelFormat == kCVPixelFormatType_32ARGB
+        let zeroCopy = isZeroCopyFormat && bytesPerRow == packedBytesPerRow
+        let pixelData: UnsafeMutableRawPointer
+        let extraFlags: FXNValueFlags
+        let packedBuffer = !zeroCopy ? malloc(width * height * 4)! : nil
+        defer { free(packedBuffer) }
         if zeroCopy {
-            var value: OpaquePointer?
-            let status = FXNValueCreateImage(
-                baseAddress.assumingMemoryBound(to: UInt8.self),
-                Int32(width),
-                Int32(height),
-                channels,
-                FXNValueFlags(rawValue: flags.rawValue),
-                &value
-            )
-            if status == FXN_OK {
-                return Value(value: value!)
-            } else {
-                throw FunctionError.from(status: status)
-            }
-        }
-        if pixelFormat == kCVPixelFormatType_32BGRA {
-            let packedBuffer = malloc(width * height * 4)!
-            defer {
-                free(packedBuffer)
-            }
+            pixelData = baseAddress
+            extraFlags = FXN_VALUE_FLAG_NONE
+        } else {
             var srcBuffer = vImage_Buffer(
                 data: baseAddress,
                 height: vImagePixelCount(height),
@@ -297,27 +282,48 @@ internal class Value {
                 width: vImagePixelCount(width),
                 rowBytes: width * 4
             )
-            let permuteMap: [UInt8] = [2, 1, 0, 3]
-            let error = vImagePermuteChannels_ARGB8888(&srcBuffer, &destBuffer, permuteMap, vImage_Flags(kvImageNoFlags))
-            if error != kvImageNoError {
-                throw FunctionError.invalidOperation(message: "Pixel buffer could not be permuted to `RGBA8888` with error: \(error)")
-            }
-            var value: OpaquePointer?
-            let status = FXNValueCreateImage(
-                baseAddress.assumingMemoryBound(to: UInt8.self),
-                Int32(width),
-                Int32(height),
-                channels,
-                FXNValueFlags(rawValue: flags.rawValue | FXN_VALUE_FLAG_COPY_DATA.rawValue),
-                &value
-            )
-            if status == FXN_OK {
-                return Value(value: value!)
+            var error = kvImageInvalidCVImageFormat
+            if isZeroCopyFormat {
+                error = vImageCopyBuffer(
+                    &srcBuffer,
+                    &destBuffer,
+                    Int(channels),
+                    vImage_Flags(kvImageNoFlags)
+                )
+            } else if pixelFormat == kCVPixelFormatType_24BGR {
+                error = vImagePermuteChannels_RGB888(
+                    &srcBuffer,
+                    &destBuffer,
+                    [2, 1, 0],
+                    vImage_Flags(kvImageNoFlags)
+                )
+            } else if pixelFormat == kCVPixelFormatType_32BGRA {
+                error = vImagePermuteChannels_ARGB8888(
+                    &srcBuffer,
+                    &destBuffer,
+                    [2, 1, 0, 3],
+                    vImage_Flags(kvImageNoFlags)
+                )
             } else {
-                throw FunctionError.from(status: status)
+                throw FunctionError.invalidOperation(message: "Pixel buffer could not be converted to `RGBA8888` with error: \(error)")
             }
+            pixelData = packedBuffer!
+            extraFlags = FXN_VALUE_FLAG_COPY_DATA
         }
-        throw FunctionError.invalidArgument(message: "Pixel buffer has unsupported format: \(pixelFormat)")
+        var value: OpaquePointer?
+        let status = FXNValueCreateImage(
+            pixelData.assumingMemoryBound(to: UInt8.self),
+            Int32(width),
+            Int32(height),
+            Int32(channels),
+            FXNValueFlags(rawValue: flags.rawValue | extraFlags.rawValue),
+            &value
+        )
+        if status == FXN_OK {
+            return Value(value: value!)
+        } else {
+            throw FunctionError.from(status: status)
+        }
     }
 
     public static func createBinary (buffer: Data, flags: ValueFlags = .none) throws -> Value {
