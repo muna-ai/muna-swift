@@ -54,7 +54,7 @@ FXN_ACCESS_KEY="<ACCESS KEY>"
 ## Making a Prediction
 First, create a Function client:
 ```swift
-import FunctionSwift;
+import FunctionSwift
 
 // 💥 Create a Function client
 let fxn = Function(accessKey: "...")
