@@ -54,7 +54,7 @@ FXN_ACCESS_KEY="<ACCESS KEY>"
 ## Making a Prediction
 First, create a Function client:
 ```swift
-import FunctionSwift;
+import FunctionSwift
 
 // 💥 Create a Function client
 let fxn = Function(accessKey: "...")
@@ -75,8 +75,8 @@ print("Prediction result: \(prediction.results![0]!)")
 
 ## Embedding Predictors
 Function normally works by downloading and executing prediction functions at runtime. But because iOS requires 
-strict sandboxing, ou must download and embed predictors at build-time instead.
-The first step is to create an `fxn.config.swift` file at the root of your target directory:
+strict sandboxing, you must download and embed predictors at build-time instead.
+First, create an `fxn.config.swift` file at the root of your target directory:
 ```swift
 import FunctionSwift
 
