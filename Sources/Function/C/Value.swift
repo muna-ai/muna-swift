@@ -200,7 +200,7 @@ internal class Value {
     public static func createString (data: String) throws -> Value {
         return try data.withCString { cString in
             var value: OpaquePointer?
-            let status = FXNValueCreateList(cString, &value)
+            let status = FXNValueCreateString(cString, &value)
             if status == FXN_OK {
                 return Value(value: value!)
             } else {

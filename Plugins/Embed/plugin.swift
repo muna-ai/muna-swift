@@ -203,8 +203,15 @@ struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
         try script.write(to: scriptUrl, atomically: true, encoding: .utf8)
         // Execute
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["swift", scriptUrl.path]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
+        process.arguments = [
+            "run",
+            scriptUrl.path,
+            "--skip-build",
+            "--disable-build-manifest-caching",
+            "--disable-dependency-cache",
+            "--disable-local-rpath"
+        ]
         let outputPipe = Pipe()
         let errorPipe = Pipe()
         process.standardOutput = outputPipe
