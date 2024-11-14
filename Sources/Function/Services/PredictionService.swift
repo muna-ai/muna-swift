@@ -37,6 +37,10 @@ public class PredictionService {
         self.cache = [:]
     }
 
+    public func ready (tag: String) -> Bool {
+        return cache.keys.contains(tag)
+    }
+
     public func create (
         tag: String,
         inputs: [String: Any?]? = nil,

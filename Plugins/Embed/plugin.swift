@@ -11,7 +11,7 @@ import PackagePlugin
 import XcodeProjectPlugin
 
 @main
-struct FunctionEmbed: CommandPlugin, XcodeCommandPlugin {
+struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
 
     struct Configuration : Codable {
         public let tags: [String]

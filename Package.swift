@@ -15,7 +15,7 @@ let package = Package(
         ),
         .plugin(
             name: "FunctionEmbed",
-            targets: ["Embed Predictors"]
+            targets: ["Embed Predictors", "Bootstrap Project"]
         )
     ],
     dependencies: [
@@ -33,8 +33,8 @@ let package = Package(
         ),
         .binaryTarget(
             name: "Function",
-            url: "https://cdn.fxn.ai/fxnc/0.0.30/Function.xcframework.zip",
-            checksum: "80e92b9997e60651ac9ace5705e5ecd2d65c04f25a71f5dc82f4accd2df673fd"
+            url: "https://cdn.fxn.ai/fxnc/0.0.31/Function.xcframework.zip",
+            checksum: "4b0a13719c5849471311672628c5f08c67a93fa070b03c4e22813e7158a70891"
         ),
         .testTarget(
             name: "FunctionTests",
@@ -49,11 +49,24 @@ let package = Package(
             path: "Sources/Embed"
         ),
         .plugin(
+            name: "Bootstrap Project",
+            capability: .command(
+                intent: .custom(
+                    verb: "fxn-init",
+                    description: "Initialize Function in your iOS app target."
+                ),
+                permissions: [
+                    .writeToPackageDirectory(reason: "Allow Function write the Function configuration template.")
+                ]
+            ),
+            path: "Plugins/Bootstrap"
+        ),
+        .plugin(
             name: "Embed Predictors",
             capability: .command(
                 intent: .custom(
-                    verb: "fxn",
-                    description: "Function will embed predictors into your app."
+                    verb: "fxn-embed",
+                    description: "Embed predictors into your app bundle."
                 ),
                 permissions: [
                     .allowNetworkConnections(
