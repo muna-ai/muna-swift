@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 9/21/2024.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import CoreVideo
@@ -194,74 +194,98 @@ public class PredictionService {
         }
     }
 
-    private func toValue (input: Any?) throws -> Value {
+    private func toValue (_ input: Any?) throws -> Value {
         switch (input) {
         case nil:
             return try Value.createNull()
         case let scalar as Float16:
             let tensor = Tensor(data: [scalar], shape: [])
-            return try Value.createArray(data: tensor, flags: .copyData)
-        case let scalar as Float:
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Float32:
             let tensor = Tensor(data: [scalar], shape: [])
-            return try Value.createArray(data: tensor, flags: .copyData)
-        case let scalar as Double:
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Float64:
             let tensor = Tensor(data: [scalar], shape: [])
-            return try Value.createArray(data: tensor, flags: .copyData)
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Int8:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Int16:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Int32:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as Int64:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as UInt8:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as UInt16:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as UInt32:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
+        case let scalar as UInt64:
+            let tensor = Tensor(data: [scalar], shape: [])
+            return try Value.createArray(tensor, flags: .copyData)
         case let scalar as Int:
-            let tensor = Tensor(data: [Int32(scalar)], shape: [])
-            return try Value.createArray(data: tensor, flags: .copyData)
+            return try toValue(Int32(scalar))
         case let scalar as Bool:
             let tensor = Tensor(data: [scalar], shape: [])
-            return try Value.createArray(data: tensor, flags: .copyData)
+            return try Value.createArray(tensor, flags: .copyData)
         case let array as [Float16]:
             let tensor = Tensor(data: array, shape: [array.count])
-            return try Value.createArray(data: tensor)
-        case let array as [Float]:
+            return try Value.createArray(tensor)
+        case let array as [Float32]:
             let tensor = Tensor(data: array, shape: [array.count])
-            return try Value.createArray(data: tensor)
-        case let array as [Double]:
+            return try Value.createArray(tensor)
+        case let array as [Float64]:
             let tensor = Tensor(data: array, shape: [array.count])
-            return try Value.createArray(data: tensor)
+            return try Value.createArray(tensor)
+        case let array as [Int8]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [Int16]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [Int32]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [Int64]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [UInt8]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [UInt16]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [UInt32]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
+        case let array as [UInt64]:
+            let tensor = Tensor(data: array, shape: [array.count])
+            return try Value.createArray(tensor)
         case let array as [Int]:
-            let tensor = Tensor(data: array.map{ Int32($0) }, shape: [array.count])
-            return try Value.createArray(data: tensor, flags: .copyData)
+            return try toValue(array.map{ Int32($0) })
         case let array as [Bool]:
             let tensor = Tensor(data: array, shape: [array.count])
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Float16>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Float>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Double>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Int8>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Int16>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Int32>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Int64>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<UInt8>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<UInt16>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<UInt32>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<UInt64>:
-            return try Value.createArray(data: tensor)
-        case let tensor as Tensor<Bool>:
-            return try Value.createArray(data: tensor)
+            return try Value.createArray(tensor)
+        case let tensor as TensorCompatible:
+            return try Value.createArray(tensor)
         case let string as String:
-            return try Value.createString(data: string)
+            return try Value.createString(string)
         case let list as [Any]:
-            return try Value.createList(data: list)
+            return try Value.createList(list)
         case let dict as [String: Any]:
-            return try Value.createDict(data: dict)
+            return try Value.createDict(dict)
         case let image as CVPixelBuffer:
-            return try Value.createImage(pixelBuffer: image)
+            return try Value.createImage(image)
         case let data as Data:
-            return try Value.createBinary(buffer: data)
+            return try Value.createBinary(data)
         default:
             throw FunctionError.invalidArgument(message: "Object cannot be converted to Function value because it has an unsupported type: \(type(of: input))")
         }
@@ -270,7 +294,7 @@ public class PredictionService {
     private func toValueMap (inputs: [String: Any?]) throws -> ValueMap {
         let map = try ValueMap()
         for (key, value) in inputs {
-            map[key] = try toValue(input: value)
+            map[key] = try toValue(value)
         }
         return map
     }

@@ -3,13 +3,13 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Function
 import Metal
 
-public class Configuration {
+internal class Configuration {
 
     internal var configuration: OpaquePointer?
 

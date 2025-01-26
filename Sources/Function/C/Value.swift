@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Accelerate
@@ -74,9 +74,9 @@ internal class Value {
         case .float16:
             return Value.toTensor(data: try data!.assumingMemoryBound(to: Float16.self), shape: try shape)
         case .float32:
-            return Value.toTensor(data: try data!.assumingMemoryBound(to: Float.self), shape: try shape)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Float32.self), shape: try shape)
         case .float64:
-            return Value.toTensor(data: try data!.assumingMemoryBound(to: Double.self), shape: try shape)
+            return Value.toTensor(data: try data!.assumingMemoryBound(to: Float64.self), shape: try shape)
         case .int8:
             return Value.toTensor(data: try data!.assumingMemoryBound(to: Int8.self), shape: try shape)
         case .int16:
@@ -97,11 +97,16 @@ internal class Value {
             return Value.toTensor(data: try data!.assumingMemoryBound(to: Bool.self), shape: try shape)
         case .string:
             return String(cString: try data!.assumingMemoryBound(to: CChar.self))
-        case .list, .dict:
-            let jsonString = String(cString: try data!.assumingMemoryBound(to: CChar.self))
-            let data = jsonString.data(using: .utf8)!
-            let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [Any]
-            return jsonObject
+        case .list:
+            let cString = try data!.assumingMemoryBound(to: CChar.self)
+            let length = strlen(cString)
+            let data = Data(bytes: cString, count: Int(length))
+            return try? JSONSerialization.jsonObject(with: data, options: []) as? [Any]
+        case .dict:
+            let cString = try data!.assumingMemoryBound(to: CChar.self)
+            let length = strlen(cString)
+            let data = Data(bytes: cString, count: Int(length))
+            return try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
         case .image:
             let shape = try shape
             let height = shape[0]
@@ -109,17 +114,13 @@ internal class Value {
             let channels = shape[2]
             let pixelFormatType: OSType
             switch channels {
-            case 1:
-                pixelFormatType = kCVPixelFormatType_OneComponent8
-            case 3:
-                pixelFormatType = kCVPixelFormatType_24RGB
-            case 4:
-                pixelFormatType = kCVPixelFormatType_32ARGB
-            default:
-                throw FunctionError.invalidOperation(message: "Cannot convert value to image because channel count is invalid: \(channels)")
+            case 1: pixelFormatType = kCVPixelFormatType_OneComponent8
+            case 3: pixelFormatType = kCVPixelFormatType_24RGB
+            case 4: pixelFormatType = kCVPixelFormatType_32ARGB
+            default: throw FunctionError.invalidOperation(message: "Cannot convert value to image because channel count is invalid: \(channels)")
             }
             var pixelBuffer: CVPixelBuffer?
-            let attrs: [String: Any] = [ // CHECK // IOSurface??
+            let attrs: [String: Any] = [
                 kCVPixelBufferMetalCompatibilityKey as String: true,
                 kCVPixelBufferCGImageCompatibilityKey as String: true,
                 kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
@@ -136,9 +137,7 @@ internal class Value {
                 throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be created with error: \(cvStatus)")
             }
             CVPixelBufferLockBaseAddress(pixelBuffer, [])
-            defer {
-                CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-            }
+            defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, []) }
             guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
                 throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be locked for writing")
             }
@@ -178,14 +177,14 @@ internal class Value {
         value = nil
     }
     
-    public static func createArray<T> (data: Tensor<T>, flags: ValueFlags = .none) throws -> Value {
+    public static func createArray (_ tensor: TensorCompatible, flags: ValueFlags = .none) throws -> Value {
         var value: OpaquePointer?
-        let dtype = FXNDtype(rawValue: data.dataType.rawValue)
-        let shape = data.shape.map { Int32($0) }
+        let dtype = FXNDtype(rawValue: tensor.dtype.rawValue)
+        let shape = tensor.shape.map { Int32($0) }
         let status = FXNValueCreateArray(
-            UnsafeMutableRawPointer(mutating: data.dataPointer),
+            UnsafeMutableRawPointer(mutating: tensor.pointer),
             shape,
-            Int32(data.shape.count),
+            Int32(tensor.shape.count),
             dtype,
             FXNValueFlags(rawValue: flags.rawValue),
             &value
@@ -197,7 +196,7 @@ internal class Value {
         }
     }
 
-    public static func createString (data: String) throws -> Value {
+    public static func createString (_ data: String) throws -> Value {
         return try data.withCString { cString in
             var value: OpaquePointer?
             let status = FXNValueCreateString(cString, &value)
@@ -209,7 +208,7 @@ internal class Value {
         }
     }
 
-    public static func createList (data: [Any]) throws -> Value {
+    public static func createList (_ data: [Any]) throws -> Value {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return try jsonString.withCString { cString in
@@ -223,7 +222,7 @@ internal class Value {
         }
     }
 
-    public static func createDict (data: [String: Any]) throws -> Value {
+    public static func createDict (_ data: [String: Any]) throws -> Value {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return try jsonString.withCString { cString in
@@ -237,7 +236,7 @@ internal class Value {
         }
     }
 
-    public static func createImage (pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
+    public static func createImage (_ pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
         let FORMAT_TO_CHANNELS = [
             kCVPixelFormatType_OneComponent8: 1,
             kCVPixelFormatType_24RGB: 3,
@@ -326,7 +325,7 @@ internal class Value {
         }
     }
 
-    public static func createBinary (buffer: Data, flags: ValueFlags = .none) throws -> Value {
+    public static func createBinary (_ buffer: Data, flags: ValueFlags = .none) throws -> Value {
         return try buffer.withUnsafeBytes { rawBufferPointer in
             let bufferPtr = rawBufferPointer.baseAddress
             let data = UnsafeMutableRawPointer(mutating: bufferPtr)
@@ -361,7 +360,7 @@ internal class Value {
         }
         let buffer = UnsafeBufferPointer(start: data, count: shape.reduce(1, *))
         let data = [T](buffer)
-        let tensor = Tensor<T>(data: data, shape: shape)
+        let tensor = Tensor(data: data, shape: shape)
         return tensor
     }
 }

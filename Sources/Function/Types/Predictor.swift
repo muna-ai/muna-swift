@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Foundation
@@ -79,13 +79,6 @@ public struct Parameter : Codable {
     
     /// Parameter value choices for enumeration parameters.
     public var enumeration: [EnumerationMember]?
-    
-    /// Parameter default value.
-    var defaultValue: Any? // CHECK
-    
-    private enum CodingKeys: String, CodingKey {
-        case name, type, description, optional, range, enumeration
-    }
 }
 
 /// Prediction parameter enumeration member.
@@ -101,17 +94,17 @@ public struct EnumerationMember: Codable {
 /// Predictor status.
 public enum PredictorStatus: String, Codable {
     
-    /// Predictor is being provisioned.
-    case Provisioning = "PROVISIONING"
+    /// Predictor is being compiled.
+    case compiling = "COMPILING"
     
     /// Predictor is active.
-    case Active = "ACTIVE"
+    case active = "ACTIVE"
     
     /// Predictor is invalid.
-    case Invalid = "INVALID"
+    case invalid = "INVALID"
     
     /// Predictor is archived.
-    case Archived = "ARCHIVED"
+    case archived = "ARCHIVED"
 }
 
 /// Predictor status.

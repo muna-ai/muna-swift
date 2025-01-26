@@ -2,8 +2,8 @@
 //  PredictorTests.swift
 //  Function
 //
-//  Created by Yusuf Olokoba on 9/21/24.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Created by Yusuf Olokoba on 9/21/2024.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import XCTest

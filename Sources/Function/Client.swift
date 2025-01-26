@@ -3,17 +3,17 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 9/21/2024.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Foundation
 
-internal class FunctionClient {
+internal final class FunctionClient : Sendable {
 
     private let url: String
     private let auth: String
     private let decoder: JSONDecoder
-    
+
     public static let defaultURL = "https://api.fxn.ai/v1"
 
     init (accessKey: String? = nil, url: String? = nil) {

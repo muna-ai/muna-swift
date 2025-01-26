@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Foundation
@@ -59,7 +59,7 @@ public struct PredictionResource: Codable {
 /// Prediction  acceleration.
 public enum Acceleration: UInt32, Codable {
 
-    /// Use the default acceleration for the given platform.
+    /// Automatically choose the best acceleration for the predictor.
     case auto = 0
 
     /// Predictions run on the CPU.

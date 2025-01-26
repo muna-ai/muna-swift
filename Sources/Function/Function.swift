@@ -3,7 +3,7 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2024 NatML Inc. All rights reserved.
+//  Copyright © 2025 NatML Inc. All rights reserved.
 //
 
 import Function
@@ -32,6 +32,9 @@ public class Function {
 
     /// Make predictions.
     public let predictions: PredictionService
+    
+    /// Client for incubating features.
+    public let beta: BetaClient
 
     private let client: FunctionClient
 
@@ -45,6 +48,7 @@ public class Function {
         self.users = UserService(client: client)
         self.predictors = PredictorService(client: client)
         self.predictions = PredictionService(client: client)
+        self.beta = BetaClient(client: client)
     }
 }
 
