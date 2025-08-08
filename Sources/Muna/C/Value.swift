@@ -1,10 +1,7 @@
-//
-//  Value.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Accelerate
 import CoreVideo
@@ -19,7 +16,7 @@ internal class Value {
 
     internal var value: OpaquePointer?
 
-    internal init (value: OpaquePointer) {
+    internal init(value: OpaquePointer) {
         self.value = value
     }
 
@@ -30,7 +27,7 @@ internal class Value {
             if status == FXN_OK {
                 return UnsafeRawPointer(dataPointer)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
@@ -42,7 +39,7 @@ internal class Value {
             if status == FXN_OK {
                 return Dtype(rawValue: dtype.rawValue)!
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
@@ -52,7 +49,7 @@ internal class Value {
             var dimensions: Int32 = 0
             var status = FXNValueGetDimensions(value, &dimensions)
             if status != FXN_OK {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
             if dimensions == 0 {
                 return []
@@ -62,15 +59,17 @@ internal class Value {
             if status == FXN_OK {
                 return shapeArray.map{ Int($0) }
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public func toObject () throws -> Any? {
+    public func toObject() throws -> Any? {
         switch try type {
         case .null:
             return nil
+        case .bfloat16:
+            throw MunaError.notImplemented
         case .float16:
             return Value.toTensor(data: try data!.assumingMemoryBound(to: Float16.self), shape: try shape)
         case .float32:
@@ -114,10 +113,14 @@ internal class Value {
             let channels = shape[2]
             let pixelFormatType: OSType
             switch channels {
-            case 1: pixelFormatType = kCVPixelFormatType_OneComponent8
-            case 3: pixelFormatType = kCVPixelFormatType_24RGB
-            case 4: pixelFormatType = kCVPixelFormatType_32ARGB
-            default: throw FunctionError.invalidOperation(message: "Cannot convert value to image because channel count is invalid: \(channels)")
+            case 1:
+                pixelFormatType = kCVPixelFormatType_OneComponent8
+            case 3:
+                pixelFormatType = kCVPixelFormatType_24RGB
+            case 4:
+                pixelFormatType = kCVPixelFormatType_32ARGB
+            default:
+                throw MunaError.invalidOperation(message: "Cannot convert value to image because channel count is invalid: \(channels)")
             }
             var pixelBuffer: CVPixelBuffer?
             let attrs: [String: Any] = [
@@ -134,12 +137,12 @@ internal class Value {
                 &pixelBuffer
             )
             guard cvStatus == kCVReturnSuccess, let pixelBuffer = pixelBuffer else {
-                throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be created with error: \(cvStatus)")
+                throw MunaError.invalidOperation(message: "Cannot convert value to image because image buffer could not be created with error: \(cvStatus)")
             }
             CVPixelBufferLockBaseAddress(pixelBuffer, [])
             defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, []) }
             guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-                throw FunctionError.invalidOperation(message: "Cannot convert value to image because image buffer could not be locked for writing")
+                throw MunaError.invalidOperation(message: "Cannot convert value to image because image buffer could not be locked for writing")
             }
             var srcBuffer = vImage_Buffer(
                 data: UnsafeMutableRawPointer(mutating: try data!),
@@ -160,7 +163,7 @@ internal class Value {
                 vImage_Flags(kvImageNoFlags)
             )
             guard vStatus == kvImageNoError else {
-                throw FunctionError.invalidOperation(message: "Cannot convert value to image because pixel data could not be copied with error: \(vStatus)")
+                throw MunaError.invalidOperation(message: "Cannot convert value to image because pixel data could not be copied with error: \(vStatus)")
             }
             return pixelBuffer
         case .binary:
@@ -170,14 +173,14 @@ internal class Value {
         }
     }
 
-    public func dispose () {
+    public func dispose() {
         if value != nil {
             FXNValueRelease(value)
         }
         value = nil
     }
     
-    public static func createArray (_ tensor: TensorCompatible, flags: ValueFlags = .none) throws -> Value {
+    public static func createArray(_ tensor: TensorCompatible, flags: ValueFlags = .none) throws -> Value {
         var value: OpaquePointer?
         let dtype = FXNDtype(rawValue: tensor.dtype.rawValue)
         let shape = tensor.shape.map { Int32($0) }
@@ -192,23 +195,23 @@ internal class Value {
         if status == FXN_OK {
             return Value(value: value!)
         } else {
-            throw FunctionError.from(status: status)
+            throw MunaError.from(status: status)
         }
     }
 
-    public static func createString (_ data: String) throws -> Value {
+    public static func createString(_ data: String) throws -> Value {
         return try data.withCString { cString in
             var value: OpaquePointer?
             let status = FXNValueCreateString(cString, &value)
             if status == FXN_OK {
                 return Value(value: value!)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public static func createList (_ data: [Any]) throws -> Value {
+    public static func createList(_ data: [Any]) throws -> Value {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return try jsonString.withCString { cString in
@@ -217,12 +220,12 @@ internal class Value {
             if status == FXN_OK {
                 return Value(value: value!)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public static func createDict (_ data: [String: Any]) throws -> Value {
+    public static func createDict(_ data: [String: Any]) throws -> Value {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return try jsonString.withCString { cString in
@@ -231,12 +234,12 @@ internal class Value {
             if status == FXN_OK {
                 return Value(value: value!)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public static func createImage (_ pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
+    public static func createImage(_ pixelBuffer: CVPixelBuffer, flags: ValueFlags = .none) throws -> Value {
         let FORMAT_TO_CHANNELS = [
             kCVPixelFormatType_OneComponent8: 1,
             kCVPixelFormatType_24RGB: 3,
@@ -253,7 +256,7 @@ internal class Value {
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)!
         guard let channels = FORMAT_TO_CHANNELS[pixelFormat] else {
-            throw FunctionError.invalidArgument(message: "Pixel buffer has unsupported format: \(pixelFormat)")
+            throw MunaError.invalidArgument(message: "Pixel buffer has unsupported format: \(pixelFormat)")
         }
         let packedBytesPerRow = width * channels
         let isZeroCopyFormat =
@@ -304,7 +307,7 @@ internal class Value {
                     vImage_Flags(kvImageNoFlags)
                 )
             } else {
-                throw FunctionError.invalidOperation(message: "Pixel buffer could not be converted to `RGBA8888` with error: \(error)")
+                throw MunaError.invalidOperation(message: "Pixel buffer could not be converted to `RGBA8888` with error: \(error)")
             }
             pixelData = packedBuffer!
             extraFlags = FXN_VALUE_FLAG_COPY_DATA
@@ -321,11 +324,11 @@ internal class Value {
         if status == FXN_OK {
             return Value(value: value!)
         } else {
-            throw FunctionError.from(status: status)
+            throw MunaError.from(status: status)
         }
     }
 
-    public static func createBinary (_ buffer: Data, flags: ValueFlags = .none) throws -> Value {
+    public static func createBinary(_ buffer: Data, flags: ValueFlags = .none) throws -> Value {
         return try buffer.withUnsafeBytes { rawBufferPointer in
             let bufferPtr = rawBufferPointer.baseAddress
             let data = UnsafeMutableRawPointer(mutating: bufferPtr)
@@ -339,22 +342,22 @@ internal class Value {
             if status == FXN_OK {
                 return Value(value: value!)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public static func createNull () throws -> Value {
+    public static func createNull() throws -> Value {
         var value: OpaquePointer?
         let status = FXNValueCreateNull(&value)
         if status == FXN_OK {
             return Value(value: value!)
         } else {
-            throw FunctionError.from(status: status)
+            throw MunaError.from(status: status)
         }
     }
 
-    private static func toTensor<T: TensorType> (data: UnsafePointer<T>, shape: [Int]) -> Any {
+    private static func toTensor<T: TensorType>(data: UnsafePointer<T>, shape: [Int]) -> Any {
         if shape.isEmpty {
             return data.pointee
         }

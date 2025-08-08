@@ -1,10 +1,7 @@
-//
-//  Prediction.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
@@ -57,17 +54,23 @@ public struct PredictionResource: Codable {
 }
 
 /// Prediction  acceleration.
-public enum Acceleration: UInt32, Codable {
+public struct Acceleration: OptionSet {
+
+    public let rawValue: UInt32
+
+    public init(rawValue: UInt32) {
+        self.rawValue = rawValue
+    }
 
     /// Automatically choose the best acceleration for the predictor.
-    case auto = 0
+    public static let auto = Acceleration([])
 
     /// Predictions run on the CPU.
-    case cpu = 0b001
+    public static let cpu = Acceleration(rawValue: 0b001)
 
-    /// Predictions run on the GPU..
-    case gpu = 0b010
+    /// Predictions run on the GPU.
+    public static let gpu = Acceleration(rawValue: 0b010)
 
-    /// Predictions run on the neural processor..
-    case npu = 0b100
+    /// Predictions run on the Neural Engine.
+    public static let npu = Acceleration(rawValue: 0b100)
 }

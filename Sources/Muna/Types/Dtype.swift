@@ -1,10 +1,7 @@
-//
-//  Dtype.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
@@ -13,6 +10,8 @@ public enum Dtype: UInt32, Codable, CustomStringConvertible {
 
     /// Value is null or has unsupported data type.
     case null = 0
+    /// Value is 16-bit brain float.
+    case bfloat16 = 18
     /// Value is IEEE 754 half precision 16-bit float.
     case float16 = 1
     /// Value is IEEE 754 single precision 32-bit float.
@@ -51,6 +50,7 @@ public enum Dtype: UInt32, Codable, CustomStringConvertible {
     public var description: String {
         switch self {
             case .null:     return "null"
+            case .bfloat16: return "bfloat16"
             case .float16:  return "float16"
             case .float32:  return "float32"
             case .float64:  return "float64"
@@ -71,7 +71,7 @@ public enum Dtype: UInt32, Codable, CustomStringConvertible {
         }
     }
     
-    public init (from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let stringValue = try container.decode(String.self)
         guard let value = Dtype(stringValue: stringValue) else {
@@ -83,32 +83,33 @@ public enum Dtype: UInt32, Codable, CustomStringConvertible {
         self = value
     }
     
-    public func encode (to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(self.description)
     }
 
-    private init? (stringValue: String) {
+    private init?(stringValue: String) {
         switch stringValue {
-            case "null":    self = .null
-            case "float16": self = .float16
-            case "float32": self = .float32
-            case "float64": self = .float64
-            case "int8":    self = .int8
-            case "int16":   self = .int16
-            case "int32":   self = .int32
-            case "int64":   self = .int64
-            case "uint8":   self = .uint8
-            case "uint16":  self = .uint16
-            case "uint32":  self = .uint32
-            case "uint64":  self = .uint64
-            case "bool":    self = .bool
-            case "string":  self = .string
-            case "list":    self = .list
-            case "dict":    self = .dict
-            case "image":   self = .image
-            case "binary":  self = .binary
-            default:        return nil
+        case "null":        self = .null
+        case "bfloat16":    self = .bfloat16
+        case "float16":     self = .float16
+        case "float32":     self = .float32
+        case "float64":     self = .float64
+        case "int8":        self = .int8
+        case "int16":       self = .int16
+        case "int32":       self = .int32
+        case "int64":       self = .int64
+        case "uint8":       self = .uint8
+        case "uint16":      self = .uint16
+        case "uint32":      self = .uint32
+        case "uint64":      self = .uint64
+        case "bool":        self = .bool
+        case "string":      self = .string
+        case "list":        self = .list
+        case "dict":        self = .dict
+        case "image":       self = .image
+        case "binary":      self = .binary
+        default:            return nil
         }
     }
 }

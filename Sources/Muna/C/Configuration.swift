@@ -1,10 +1,7 @@
-//
-//  Configuration.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Function
 import Metal
@@ -13,7 +10,7 @@ internal class Configuration {
 
     internal var configuration: OpaquePointer?
 
-    public init () {
+    public init() {
         var configuration: OpaquePointer?
         _ = FXNConfigurationCreate(&configuration);
         self.configuration = configuration;
@@ -57,7 +54,7 @@ internal class Configuration {
         get {
             var accel: FXNAcceleration = FXN_ACCELERATION_AUTO
             let status = FXNConfigurationGetAcceleration(configuration, &accel)
-            return status == FXN_OK ? Acceleration(rawValue: accel.rawValue)! : .auto
+            return status == FXN_OK ? Acceleration(rawValue: accel.rawValue) : .auto
         }
         set {
             _ = FXNConfigurationSetAcceleration(configuration, FXNAcceleration(newValue.rawValue))
@@ -84,7 +81,7 @@ internal class Configuration {
         }
     }
 
-    public func addResource (type: String, path: String) throws {
+    public func addResource(type: String, path: String) throws {
         type.withCString { typeCString in
             path.withCString { pathCString in
                 _ = FXNConfigurationAddResource(configuration, typeCString, pathCString)
@@ -92,7 +89,7 @@ internal class Configuration {
         }
     }
 
-    public func dispose () {
+    public func dispose() {
         if configuration != nil {
             FXNConfigurationRelease(configuration)
         }

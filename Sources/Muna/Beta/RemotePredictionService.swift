@@ -1,10 +1,7 @@
-//
-//  RemotePredictionService.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 1/25/2025.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import CoreGraphics
 @preconcurrency import CoreImage
@@ -13,16 +10,16 @@ import ImageIO
 
 /// Make remote predictions.
 public final class RemotePredictionService : Sendable {
-    
-    private let client: FunctionClient
+
+    private let client: MunaClient
     private let ciContext: CIContext
 
-    internal init (client: FunctionClient) {
+    internal init (client: MunaClient) {
         self.client = client
         self.ciContext = CIContext()
     }
 
-    public func create (
+    public func create(
         tag: String,
         inputs: [String: Any?],
         acceleration: RemoteAcceleration = .auto
@@ -63,8 +60,8 @@ public final class RemotePredictionService : Sendable {
             logs: prediction.logs
         )
     }
-    
-    private func toValue (
+
+    private func toValue(
         _ value: Any?,
         name: String,
         maxDataUrlSize: Int = 4 * 1024 * 1024
@@ -196,16 +193,18 @@ public final class RemotePredictionService : Sendable {
             let data = try await self.upload(buffer, name: name, maxDataUrlSize: maxDataUrlSize)
             return RemoteValue(data: data, type: .binary)
         default:
-            throw FunctionError.invalidArgument(message: "Failed to serialize value \(String(describing: value)) of type \(type(of: value)) because it is not supported")
+            throw MunaError.invalidArgument(message: "Failed to serialize value \(String(describing: value)) of type \(type(of: value)) because it is not supported")
         }
     }
 
-    private func toObject (_ value: RemoteValue) async throws -> Any? {
+    private func toObject(_ value: RemoteValue) async throws -> Any? {
         if value.type == .null {
             return nil
         }
         let data = try await download(value.data!)
         switch value.type {
+        case .bfloat16:
+            throw MunaError.notImplemented
         case .float16:
             let shape = value.shape!
             let data = data.withUnsafeBytes{ ptr in Array(ptr.bindMemory(to: Float16.self)) }
@@ -264,7 +263,7 @@ public final class RemotePredictionService : Sendable {
             guard let source = CGImageSourceCreateWithData(data as CFData, nil),
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
             else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize image value because image data is invalid")
+                throw MunaError.invalidArgument(message: "Failed to deserialize image value because image data is invalid")
             }
             let width = image.width
             let height = image.height
@@ -284,7 +283,7 @@ public final class RemotePredictionService : Sendable {
                 &pixelBuffer
             ) == kCVReturnSuccess, let buffer = pixelBuffer
             else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize image value because pixel buffer could not be created")
+                throw MunaError.invalidArgument(message: "Failed to deserialize image value because pixel buffer could not be created")
             }
             CVPixelBufferLockBaseAddress(buffer, [])
             defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
@@ -297,7 +296,7 @@ public final class RemotePredictionService : Sendable {
                 space: CGColorSpaceCreateDeviceRGB(),
                 bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
             ) else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize image value because image context could not be created")
+                throw MunaError.invalidArgument(message: "Failed to deserialize image value because image context could not be created")
             }
             let rect = CGRect(x: 0, y: 0, width: width, height: height)
             context.draw(image, in: rect)
@@ -308,8 +307,8 @@ public final class RemotePredictionService : Sendable {
             return nil
         }
     }
-    
-    private func upload (
+
+    private func upload(
         _ data: Data,
         name: String,
         mime: String = "application/octet-stream",
@@ -329,24 +328,24 @@ public final class RemotePredictionService : Sendable {
         request.addValue(mime, forHTTPHeaderField: "Content-Type")
         let (_, response) = try await URLSession.shared.upload(for: request, from: data)
         if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-            throw FunctionError.requestFailed(message: "Failed to upload value", status: httpResponse.statusCode)
+            throw MunaError.requestFailed(message: "Failed to upload value", status: httpResponse.statusCode)
         }
         return value.downloadUrl
     }
-    
-    private func download (_ url: String) async throws -> Data {
+
+    private func download(_ url: String) async throws -> Data {
         if url.hasPrefix("data:") {
             guard let commaIdx = url.firstIndex(of: ",") else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize value because data URL scheme is invalid")
+                throw MunaError.invalidArgument(message: "Failed to deserialize value because data URL scheme is invalid")
             }
             let encodedData = String(url[url.index(after: commaIdx)...])
             guard let decoded = Data(base64Encoded: encodedData) else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize value because data URL is invalid")
+                throw MunaError.invalidArgument(message: "Failed to deserialize value because data URL is invalid")
             }
             return decoded
         } else {
             guard let remoteUrl = URL(string: url) else {
-                throw FunctionError.invalidArgument(message: "Failed to deserialize value because URL is invalid")
+                throw MunaError.invalidArgument(message: "Failed to deserialize value because URL is invalid")
             }
             let (data, _) = try await URLSession.shared.data(from: remoteUrl)
             return data
@@ -358,16 +357,16 @@ public final class RemotePredictionService : Sendable {
 public enum RemoteAcceleration: String, Codable {
 
     /// Automatically choose the best acceleration for the predictor.
-    case auto = "auto"
+    case auto = "remote_auto"
 
     /// Predictions run on a CPU instance.
-    case cpu = "cpu"
+    case cpu = "remote_cpu"
 
     /// Predictions run on an Nvidia A40 GPU instance.
-    case a40 = "a40"
+    case a40 = "remote_a40"
 
     /// Predictions run on an Nvidia A100 GPU instance.
-    case a100 = "a100"
+    case a100 = "remote_a100"
 }
 
 private struct RemoteValue: Codable {
@@ -376,13 +375,13 @@ private struct RemoteValue: Codable {
     public var type: Dtype
     public var shape: [Int]?
     
-    public init (data: String? = nil, type: Dtype, shape: [Int]? = nil) {
+    public init(data: String? = nil, type: Dtype, shape: [Int]? = nil) {
         self.data = data
         self.type = type
         self.shape = shape
     }
     
-    public func toDict () -> [String: Any] {
+    public func toDict() -> [String: Any] {
         return [
             "data": self.data as Any,
             "type": self.type.description as Any,

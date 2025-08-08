@@ -1,30 +1,27 @@
-//
-//  Client.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/21/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
-internal final class FunctionClient : Sendable {
+internal final class MunaClient : Sendable {
 
     private let url: String
     private let auth: String
     private let decoder: JSONDecoder
 
-    public static let defaultURL = "https://api.fxn.ai/v1"
+    public static let defaultURL = "https://api.muna.ai/v1"
 
     init (accessKey: String? = nil, url: String? = nil) {
-        self.url = url ?? FunctionClient.defaultURL;
+        self.url = url ?? MunaClient.defaultURL;
         self.auth = accessKey != nil ? "Bearer \(accessKey!)" : ""
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .formatted(DateFormatter.utcFormatter)
         self.decoder = decoder
     }
 
-    func request<T: Decodable> (
+    func request<T: Decodable>(
         method: String,
         path: String,
         payload: [String: Any?]? = nil,
@@ -48,15 +45,15 @@ internal final class FunctionClient : Sendable {
         // Request
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw FunctionError.requestFailed(message: "Failed to request Function API", status: 500)
+            throw MunaError.requestFailed(message: "Failed to request Muna API", status: 500)
         }
         // Check error
         if httpResponse.statusCode >= 400 {
             let error = try? decoder.decode(ErrorResponse.self, from: data)
             guard let message = error?.errors.first?.message else {
-                throw FunctionError.requestFailed(message: "An unknown error occurred", status: httpResponse.statusCode)
+                throw MunaError.requestFailed(message: "An unknown error occurred", status: httpResponse.statusCode)
             }
-            throw FunctionError.requestFailed(message: message, status: httpResponse.statusCode)
+            throw MunaError.requestFailed(message: message, status: httpResponse.statusCode)
         }
         // Decode the response data
         return try decoder.decode(T.self, from: data)

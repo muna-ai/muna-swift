@@ -1,10 +1,7 @@
-//
-//  PredictionService.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 1/25/2025.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 /// Make predictions.
 public class BetaPredictionService {
@@ -12,7 +9,7 @@ public class BetaPredictionService {
     /// Make remote predictions.
     public let remote: RemotePredictionService
 
-    internal init (client: FunctionClient) {
+    internal init(client: MunaClient) {
         self.remote = RemotePredictionService(client: client)
     }
 }

@@ -1,10 +1,7 @@
-//
-//  plugin.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/24/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 import PackagePlugin
@@ -45,9 +42,9 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         }
     }
 
-    func performCommand (context: PluginContext, arguments: [String]) throws { }
+    func performCommand(context: PluginContext, arguments: [String]) throws { }
 
-    func performCommand (context: XcodeProjectPlugin.XcodePluginContext, arguments: [String]) throws {
+    func performCommand(context: XcodeProjectPlugin.XcodePluginContext, arguments: [String]) throws {
         // Check that a directory corresponding to the target exists
         let fileManager = FileManager.default;
         let projectUrl = URL(fileURLWithPath: context.xcodeProject.directory.string)
@@ -57,19 +54,19 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
             return
         }
         // Create predictor frameworks directory
-        let frameworksPath = targetPath.appending(path: "Function", directoryHint: .isDirectory)
+        let frameworksPath = targetPath.appending(path: "Muna", directoryHint: .isDirectory)
         if fileManager.fileExists(atPath: frameworksPath.path) {
             try fileManager.removeItem(at: frameworksPath)
         }
         try fileManager.createDirectory(at: frameworksPath, withIntermediateDirectories: true)
         // Parse configuration
-        let configPath = targetPath.appending(path: "fxn.config.swift")
+        let configPath = targetPath.appending(path: "muna.config.swift")
         var config = try parseConfiguration(path: configPath.path)
-        let defaultEnvPath = configPath.deletingLastPathComponent().appending(path: "fxn.xcconfig")
+        let defaultEnvPath = configPath.deletingLastPathComponent().appending(path: "muna.xcconfig")
         let envPath = config.envPath ?? defaultEnvPath.path
         let env = try parseEnv(at: envPath)
-        config.accessKey = env["FXN_ACCESS_KEY"] ?? ""
-        config.apiUrl = env["FXN_API_URL"] ?? "https://api.fxn.ai/v1"
+        config.accessKey = env["MUNA_ACCESS_KEY"] ?? ""
+        config.apiUrl = env["MUNA_API_URL"] ?? "https://api.muna.ai/v1"
         // Create predictions
         var predictions: [Prediction] = []
         var predictionError: Error?
@@ -108,9 +105,9 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         let resolvedConfig = ResolvedConfiguration(predictions: predictions)
         let resolvedConfigData = try encoder.encode(resolvedConfig)
         var resolvedConfigJson = String(data: resolvedConfigData, encoding: .utf8)!
-        let resolvedConfigPath = frameworksPath.appending(path: "fxn.resolved")
+        let resolvedConfigPath = frameworksPath.appending(path: "muna.resolved")
         let resolvedPreamble = """
-        // Function
+        // Muna
         // This file is auto-generated. Do not modify.
 
         """
@@ -118,7 +115,7 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         try resolvedConfigJson.write(to: resolvedConfigPath, atomically: true, encoding: .utf8)
     }
 
-    private func createPredictions (config: Configuration) async throws -> [Prediction] {
+    private func createPredictions(config: Configuration) async throws -> [Prediction] {
         guard let apiUrl = config.apiUrl, let accessKey = config.accessKey else {
             throw FunctionError.invalidConfiguration
         }
@@ -168,7 +165,7 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
 
     private func parseConfiguration (path: String) throws -> Configuration {
         let prefix = """
-        public class Function {
+        public class Muna {
 
             struct Configuration : Codable {
                 
@@ -196,10 +193,10 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         """
         // Create script
         var script = try String(contentsOfFile: path, encoding: .utf8)
-        script = script.replacingOccurrences(of: "import FunctionSwift", with: "")
+        script = script.replacingOccurrences(of: "import Muna", with: "")
         script = prefix + script + suffix
         let tempDirectory = FileManager.default.temporaryDirectory
-        let scriptUrl = tempDirectory.appendingPathComponent("fxn.config.swift")
+        let scriptUrl = tempDirectory.appendingPathComponent("muna.config.swift")
         try script.write(to: scriptUrl, atomically: true, encoding: .utf8)
         // Execute
         let process = Process()
@@ -236,7 +233,7 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         return config
     }
 
-    private func parseEnv (at path: String) throws -> [String: String] {
+    private func parseEnv(at path: String) throws -> [String: String] {
         let contents = try String(contentsOfFile: path, encoding: .utf8)
         var config: [String: String] = [:]
         config.merge(ProcessInfo.processInfo.environment) { current, new in
@@ -260,7 +257,7 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         return config
     }
 
-    private func downloadFramework (
+    private func downloadFramework(
         from url: URL,
         to directory: URL
     ) throws -> String {
@@ -280,14 +277,14 @@ struct EmbedPredictorsPlugin: CommandPlugin, XcodeCommandPlugin {
         return destinationUrl.lastPathComponent
     }
 
-    private func embedFrameworks (
+    private func embedFrameworks(
         context: XcodeProjectPlugin.XcodePluginContext,
         target: String,
         frameworks: [String]
     ) throws {
         let fileManager = FileManager.default
         let projectUrl = URL(fileURLWithPath: context.xcodeProject.directory.string)
-        let embedder = try context.tool(named: "FunctionEmbedder")
+        let embedder = try context.tool(named: "MunaEmbedder")
         let xcodeProjPath = try fileManager.contentsOfDirectory(at: projectUrl, includingPropertiesForKeys: nil)
             .compactMap{ $0.pathExtension == "xcodeproj" ? $0.path : nil }
             .first!

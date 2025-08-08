@@ -1,14 +1,11 @@
-//
-//  User.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
-/// Function user.
+/// Muna user.
 public struct User: Codable {
     
     /// Username.

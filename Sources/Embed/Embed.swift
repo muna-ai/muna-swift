@@ -1,10 +1,7 @@
-//
-//  Patcher.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/28/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import ArgumentParser
 import Foundation
@@ -23,7 +20,7 @@ struct Embed: ParsableCommand {
     @Option(name: .long, help: "Target name to patch.")
     var target: String? = nil
 
-    func run () throws {
+    func run() throws {
         let projectPath = Path(project!)
         let projectDirectory = projectPath.parent().string
         let project = try XcodeProj(path: projectPath)
@@ -48,7 +45,7 @@ struct Embed: ParsableCommand {
         try project.write(path: projectPath)
     }
 
-    func findOrCreateEmbedFrameworksPhase (for target: PBXTarget, in pbxproj: PBXProj) -> PBXCopyFilesBuildPhase {
+    func findOrCreateEmbedFrameworksPhase(for target: PBXTarget, in pbxproj: PBXProj) -> PBXCopyFilesBuildPhase {
         if let existingEmbedPhase = target.embedFrameworksBuildPhases().first {
             return existingEmbedPhase
         } else {
@@ -59,7 +56,7 @@ struct Embed: ParsableCommand {
         }
     }
     
-    func removeStaleFrameworks (phase: PBXCopyFilesBuildPhase, pbxproj: PBXProj) {
+    func removeStaleFrameworks(phase: PBXCopyFilesBuildPhase, pbxproj: PBXProj) {
         guard let files = phase.files else { return }
         for file in files {
             guard let fileRef = file.file else {
@@ -75,9 +72,9 @@ struct Embed: ParsableCommand {
         }
     }
 
-    func getRelativePath (from root: String, to path: String) throws -> String {
+    func getRelativePath(from root: String, to path: String) throws -> String {
         guard path.hasPrefix(root) else {
-            throw FunctionError.fileNotFound
+            throw MunaError.fileNotFound
         }
         let rootUrl = URL(fileURLWithPath: root).standardized
         let pathUrl = URL(fileURLWithPath: path).standardized
@@ -89,7 +86,7 @@ struct Embed: ParsableCommand {
     }
 }
 
-enum FunctionError : Error {
+enum MunaError : Error {
     case groupNotFound(name: String)
     case fileNotFound
 }

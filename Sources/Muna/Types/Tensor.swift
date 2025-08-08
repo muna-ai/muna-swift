@@ -1,10 +1,7 @@
-//
-//  Tensor.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
@@ -44,7 +41,7 @@ public struct Tensor<T : TensorType> : TensorCompatible {
     /// - Parameters:
     ///   - data: Tensor data.
     ///   - shape: Tensor shape.
-    public init (data: [T], shape: [Int]) {
+    public init(data: [T], shape: [Int]) {
         self.data = data
         self.nativeData = nil
         self.shape = shape
@@ -54,7 +51,7 @@ public struct Tensor<T : TensorType> : TensorCompatible {
     /// - Parameters:
     ///   - data: Pointer to tensor data.
     ///   - shape: Tensor shape.
-    public init (data: UnsafePointer<T>, shape: [Int]) {
+    public init(data: UnsafePointer<T>, shape: [Int]) {
         self.data = nil
         self.nativeData = data
         self.shape = shape

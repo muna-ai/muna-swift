@@ -1,10 +1,7 @@
-//
-//  Prediction.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Function
 
@@ -23,7 +20,7 @@ internal class CPrediction {
             if status == FXN_OK {
                 return String(cString: buffer)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
@@ -35,7 +32,7 @@ internal class CPrediction {
             if status == FXN_OK {
                 return latency
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
@@ -45,12 +42,12 @@ internal class CPrediction {
             var map: OpaquePointer?
             var status = FXNPredictionGetResults(prediction, &map)
             if status != FXN_OK {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
             var count: Int32 = 0
             status = FXNValueMapGetSize(map, &count)
             if status != FXN_OK {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
             return count > 0 ? ValueMap(map: map) : nil
         }
@@ -66,7 +63,7 @@ internal class CPrediction {
             if status == FXN_OK {
                 return String(cString: buffer)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
@@ -76,19 +73,19 @@ internal class CPrediction {
             var length: Int32 = 0
             var status = FXNPredictionGetLogLength(prediction, &length)
             if status != FXN_OK {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
             var buffer = [CChar](repeating: 0, count: Int(length) + 1)
             status = FXNPredictionGetLogs(prediction, &buffer, Int32(buffer.count))
             if status == FXN_OK {
                 return String(cString: buffer)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public func dispose () {
+    public func dispose() {
         if prediction != nil {
             FXNPredictionRelease(prediction)
         }

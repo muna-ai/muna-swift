@@ -1,10 +1,7 @@
-//
-//  Predictor.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 10/21/2023.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Foundation
 
@@ -21,7 +18,7 @@ public struct Predictor: Codable {
     public var name: String
 
     /// Predictor access.
-    public var access: AccessMode
+    public var access: PredictorAccess
     
     /// Predictor status.
     public var status: PredictorStatus
@@ -40,10 +37,6 @@ public struct Predictor: Codable {
     
     /// Predictor signature.
     public var signature: Signature?
-    
-    /// Predictor provisioning error.
-    /// This is populated when the predictor status is `INVALID`.
-    public var error: String?
     
     /// Predictor license URL.
     public var license: String?
@@ -95,26 +88,26 @@ public struct EnumerationMember: Codable {
 public enum PredictorStatus: String, Codable {
     
     /// Predictor is being compiled.
-    case compiling = "COMPILING"
+    case compiling = "compiling"
     
     /// Predictor is active.
-    case active = "ACTIVE"
-    
-    /// Predictor is invalid.
-    case invalid = "INVALID"
+    case active = "active"
     
     /// Predictor is archived.
-    case archived = "ARCHIVED"
+    case archived = "archived"
 }
 
 /// Predictor status.
-public enum AccessMode: String, Codable {
+public enum PredictorAccess: String, Codable {
     
     /// Predictor is public.
-    case Public = "PUBLIC"
+    case `public` = "public"
     
     /// Predictor is private.
-    case Private = "PRIVATE"
+    case `private` = "private"
+    
+    /// Predictor is unlisted.
+    case unlisted = "unlisted"
 }
 
 /// Prediction parameter enumeration value.
@@ -123,7 +116,7 @@ public enum EnumerationValue: Codable {
     case string(String)
     case int(Int)
 
-    public init (from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let intValue = try? container.decode(Int.self) {
             self = .int(intValue)
@@ -134,7 +127,7 @@ public enum EnumerationValue: Codable {
         }
     }
 
-    public func encode (to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
         case .int(let intValue):

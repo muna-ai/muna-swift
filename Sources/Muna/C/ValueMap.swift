@@ -1,10 +1,7 @@
-//
-//  ValueMap.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/28/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import Function
 
@@ -12,17 +9,17 @@ internal class ValueMap {
 
     internal var map: OpaquePointer?
 
-    internal init () throws {
+    internal init() throws {
         var map: OpaquePointer?
         let status = FXNValueMapCreate(&map);
         if status == FXN_OK {
             self.map = map;
         } else {
-            throw FunctionError.from(status: status)
+            throw MunaError.from(status: status)
         }
     }
 
-    internal init (map: OpaquePointer?) {
+    internal init(map: OpaquePointer?) {
         self.map = map
     }
 
@@ -33,22 +30,22 @@ internal class ValueMap {
             if status == FXN_OK {
                 return Int(count)
             } else {
-                throw FunctionError.from(status: status)
+                throw MunaError.from(status: status)
             }
         }
     }
 
-    public func key (at index: Int) throws -> String {
+    public func key(at index: Int) throws -> String {
         var buffer = [CChar](repeating: 0, count: 2048)
         let status = FXNValueMapGetKey(map, Int32(index), &buffer, Int32(buffer.count))
         if status == FXN_OK {
             return String(cString: buffer)
         } else {
-            throw FunctionError.from(status: status)
+            throw MunaError.from(status: status)
         }
     }
 
-    public subscript (key: String) -> Value? {
+    public subscript(key: String) -> Value? {
         get {
             return key.withCString { cKey in
                 var value: OpaquePointer?
@@ -63,7 +60,7 @@ internal class ValueMap {
         }
     }
 
-    public func dispose () {
+    public func dispose() {
         if map != nil {
             FXNValueMapRelease(map)
         }

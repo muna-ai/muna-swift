@@ -1,10 +1,7 @@
-//
-//  PredictionService.swift
-//  Function
-//
-//  Created by Yusuf Olokoba on 9/21/2024.
-//  Copyright © 2025 NatML Inc. All rights reserved.
-//
+/*
+*   Muna
+*   Copyright © 2025 NatML Inc. All rights reserved.
+*/
 
 import CoreVideo
 import Foundation
@@ -13,10 +10,10 @@ import Metal
 
 public class PredictionService {
 
-    private let client: FunctionClient
+    private let client: MunaClient
     private var cache: [String: CPredictor]
     private static let predictionCache: [String: Prediction] = {
-        guard let url = Bundle.main.url(forResource: "fxn", withExtension: "resolved") else {
+        guard let url = Bundle.main.url(forResource: "muna", withExtension: "resolved") else {
             return [:]
         }
         guard let data = try? Data(contentsOf: url) else {
@@ -32,16 +29,12 @@ public class PredictionService {
         return cache
     }()
 
-    internal init (client: FunctionClient) {
+    internal init(client: MunaClient) {
         self.client = client
         self.cache = [:]
     }
 
-    public func ready (tag: String) -> Bool {
-        return cache.keys.contains(tag)
-    }
-
-    public func create (
+    public func create(
         tag: String,
         inputs: [String: Any?]? = nil,
         acceleration: Acceleration = .auto,
@@ -70,7 +63,7 @@ public class PredictionService {
         return try toPrediction(tag: tag, prediction: prediction)
     }
 
-    public func stream (
+    public func stream(
         tag: String,
         inputs: [String: Any],
         acceleration: Acceleration = .auto,
@@ -100,7 +93,7 @@ public class PredictionService {
         }
     }
 
-    public func delete (tag: String) async throws -> Bool {
+    public func delete(tag: String) async throws -> Bool {
         guard let predictor = cache[tag] else {
             return false
         }
@@ -109,7 +102,7 @@ public class PredictionService {
         return true
     }
 
-    private func createRawPrediction (
+    private func createRawPrediction(
         tag: String,
         clientId: String? = nil,
         configurationId: String? = nil,
@@ -184,7 +177,7 @@ public class PredictionService {
 
     private func getResourcePath (resource: PredictionResource, cacheDir: String) throws -> String {
         guard let url = URL(string: resource.url) else {
-            throw FunctionError.invalidArgument(message: "Resource URL is invalid")
+            throw MunaError.invalidArgument(message: "Resource URL is invalid")
         }
         let stem = url.lastPathComponent
         if let name = resource.name {
@@ -287,11 +280,11 @@ public class PredictionService {
         case let data as Data:
             return try Value.createBinary(data)
         default:
-            throw FunctionError.invalidArgument(message: "Object cannot be converted to Function value because it has an unsupported type: \(type(of: input))")
+            throw MunaError.invalidArgument(message: "Object cannot be converted to Function value because it has an unsupported type: \(type(of: input))")
         }
     }
 
-    private func toValueMap (inputs: [String: Any?]) throws -> ValueMap {
+    private func toValueMap(inputs: [String: Any?]) throws -> ValueMap {
         let map = try ValueMap()
         for (key, value) in inputs {
             map[key] = try toValue(value)
@@ -299,7 +292,7 @@ public class PredictionService {
         return map
     }
 
-    private func toPrediction (tag: String, prediction: CPrediction) throws -> Prediction {
+    private func toPrediction(tag: String, prediction: CPrediction) throws -> Prediction {
         var result = Prediction(id: try prediction.id, tag: tag, created: Date())
         result.results = try {
             if let outputMap = try prediction.results {
