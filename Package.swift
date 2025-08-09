@@ -1,5 +1,4 @@
 // swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
@@ -12,21 +11,13 @@ let package = Package(
         .library(
             name: "Muna",
             targets: ["Muna"]
-        ),
-        .plugin(
-            name: "MunaEmbed",
-            targets: ["Embed Predictors", "Bootstrap Project"]
         )
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-        .package(url: "https://github.com/tuist/XcodeProj.git", from: "9.5.0")
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "Muna",
             dependencies: ["Function"],
-            path: "Sources/Muna",
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
             ]
@@ -39,45 +30,6 @@ let package = Package(
         .testTarget(
             name: "MunaTests",
             dependencies: ["Muna"]
-        ),
-        .executableTarget(
-            name: "MunaEmbedder",
-            dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "XcodeProj", package: "XcodeProj")
-            ],
-            path: "Sources/Embed"
-        ),
-        .plugin(
-            name: "Bootstrap Project",
-            capability: .command(
-                intent: .custom(
-                    verb: "muna-init",
-                    description: "Initialize Muna in your iOS app target."
-                ),
-                permissions: [
-                    .writeToPackageDirectory(reason: "Allow Muna write the Muna configuration template.")
-                ]
-            ),
-            path: "Plugins/Bootstrap"
-        ),
-        .plugin(
-            name: "Embed Predictors",
-            capability: .command(
-                intent: .custom(
-                    verb: "muna-embed",
-                    description: "Embed predictors into your app bundle."
-                ),
-                permissions: [
-                    .allowNetworkConnections(
-                        scope: .all(ports: [80, 443]),
-                        reason: "Allow Muna to download and embed predictors into your app."
-                    ),
-                    .writeToPackageDirectory(reason: "Allow Muna to embed predictors into your app.")
-                ]
-            ),
-            dependencies: ["MunaEmbedder"],
-            path: "Plugins/Embed"
         )
     ]
 )
