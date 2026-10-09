@@ -3,17 +3,17 @@
 //  Function
 //
 //  Created by Yusuf Olokoba on 1/25/2025.
-//  Copyright © 2025 NatML Inc. All rights reserved.
+//  Copyright © 2026 NatML Inc. All rights reserved.
 //
 
 import XCTest
-@testable import FunctionSwift
+@testable import Muna
 
 final class RemotePredictionTests : XCTestCase {
     
     func testCreatePrediction () async throws {
         let tag = "@fxn/greeting"
-        let fxn = Function(accessKey: "fxn-PyJ4ZzZUqBxI7q8vlknJe")
+        let fxn = Muna(accessKey: "")
         let prediction = try await fxn.beta.predictions.remote.create(
             tag: tag,
             inputs: ["name": "Yusuf"]

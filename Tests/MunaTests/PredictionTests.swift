@@ -7,13 +7,13 @@
 //
 
 import XCTest
-@testable import FunctionSwift
+@testable import Muna
 
 final class PredictionTests : XCTestCase {
 
     func testConfigurationIds () async throws {
-        let uniqueId = FunctionSwift.Configuration.uniqueId;
-        let clientId = FunctionSwift.Configuration.clientId;
+        let uniqueId = Configuration.uniqueId;
+        let clientId = Configuration.clientId;
         XCTAssertNotNil(uniqueId)
         XCTAssertNotNil(clientId)
     }

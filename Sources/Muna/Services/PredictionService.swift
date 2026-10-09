@@ -11,7 +11,8 @@ import Metal
 public class PredictionService {
 
     private let client: MunaClient
-    private var cache: [String: CPredictor]
+    private let predictionCacheStore: PredictionCacheStore
+    private var cache: [PredictionCacheKey: (predictor: CPredictor, token: String?)]
     private static let predictionCache: [String: Prediction] = {
         guard let url = Bundle.main.url(forResource: "muna", withExtension: "resolved") else {
             return [:]
@@ -29,8 +30,12 @@ public class PredictionService {
         return cache
     }()
 
-    internal init(client: MunaClient) {
+    internal init(
+        client: MunaClient,
+        predictionCacheStore: PredictionCacheStore = PredictionCacheStore()
+    ) {
         self.client = client
+        self.predictionCacheStore = predictionCacheStore
         self.cache = [:]
     }
 
@@ -94,11 +99,13 @@ public class PredictionService {
     }
 
     public func delete(tag: String) async throws -> Bool {
-        guard let predictor = cache[tag] else {
+        let keys = cache.keys.filter { $0.tag == tag }
+        guard !keys.isEmpty else {
             return false
         }
-        cache.removeValue(forKey: tag)
-        predictor.dispose()
+        for key in keys {
+            cache.removeValue(forKey: key)?.predictor.dispose()
+        }
         return true
     }
 
@@ -127,28 +134,76 @@ public class PredictionService {
         clientId: String? = nil,
         configurationId: String? = nil
     ) async throws -> CPredictor {
-        if let predictor = cache[tag] {
+        let target = clientId ?? Configuration.clientId ?? ""
+        let resolvedConfigurationId = configurationId ?? Configuration.uniqueId ?? ""
+        let cacheKey = PredictionCacheKey(
+            tag: tag,
+            target: target,
+            configurationId: resolvedConfigurationId
+        )
+        let (prediction, usedCachedPrediction) = try await predictionCacheStore.getOrRefreshPrediction(
+            for: cacheKey
+        ) {
+            try await createRawPrediction(
+                tag: tag,
+                clientId: target,
+                configurationId: resolvedConfigurationId,
+                predictionId: PredictionService.predictionCache[tag]?.id
+            )
+        }
+        let loaded = cache[cacheKey]
+        if loaded?.token == prediction.configuration, let predictor = loaded?.predictor {
             return predictor
         }
-        let prediction = try await createRawPrediction(
-            tag: tag,
-            clientId: clientId,
-            configurationId: configurationId,
-            predictionId: PredictionService.predictionCache[tag]?.id
-        )
+        let predictor: CPredictor
+        let predictorToken: String?
+        do {
+            predictor = try await createPredictor(
+                prediction: prediction,
+                acceleration: acceleration,
+                device: device
+            )
+            predictorToken = prediction.configuration
+        } catch where usedCachedPrediction {
+            // Function does not currently expose a token-specific predictor
+            // creation status. Treat one failure from a cached configuration as
+            // cache corruption, invalidate it, and retry exactly once.
+            predictionCacheStore.removePrediction(for: cacheKey)
+            let freshPrediction = try await createRawPrediction(
+                tag: tag,
+                clientId: target,
+                configurationId: resolvedConfigurationId,
+                predictionId: PredictionService.predictionCache[tag]?.id
+            )
+            predictionCacheStore.set(freshPrediction, for: cacheKey)
+            predictor = try await createPredictor(
+                prediction: freshPrediction,
+                acceleration: acceleration,
+                device: device
+            )
+            predictorToken = freshPrediction.configuration
+        }
+        cache[cacheKey] = (predictor, predictorToken)
+        loaded?.predictor.dispose()
+        return predictor
+    }
+
+    private func createPredictor(
+        prediction: Prediction,
+        acceleration: Acceleration,
+        device: MTLDevice?
+    ) async throws -> CPredictor {
         let configuration = Configuration()
         defer { configuration.dispose() }
         configuration.tag = prediction.tag
         configuration.token = prediction.configuration
         configuration.acceleration = acceleration
         configuration.device = device
-        for resource in prediction.resources! {
+        for resource in prediction.resources ?? [] {
             let path = try await downloadResource(resource: resource)
             try configuration.addResource(type: resource.type, path: path)
         }
-        let predictor = try CPredictor(configuration: configuration)
-        cache[tag] = predictor
-        return predictor
+        return try CPredictor(configuration: configuration)
     }
 
     private func downloadResource (resource: PredictionResource) async throws -> String {
